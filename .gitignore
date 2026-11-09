@@ -1,0 +1,18 @@
+# Dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Secrets: never commit real keys
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
