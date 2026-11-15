@@ -1,5 +1,6 @@
-// Types shared by client and server.
-// The full API contract (REST bodies and WebSocket messages) is added here in the next step.
+// API contract shared by client and server.
+// Changes go through a pull request reviewed by Yifei.
+export * from './domain.ts'
 
 export interface HealthResponse {
   status: 'ok'
