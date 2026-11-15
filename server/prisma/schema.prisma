@@ -1,0 +1,109 @@
+// Database schema. Enum values match the types in shared/src/domain.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum Voice {
+  MALE
+  FEMALE
+}
+
+enum InterviewStatus {
+  CREATED
+  LIVE
+  SCORING
+  DONE
+  FAILED
+}
+
+enum Speaker {
+  INTERVIEWER
+  CANDIDATE
+}
+
+enum Skill {
+  TECHNICAL_DEPTH
+  TRADE_OFFS
+  RESULTS_VALIDATION
+  PERSONAL_CONTRIBUTION
+  CLARITY
+}
+
+enum Verdict {
+  STRONG_HIRE
+  HIRE
+  NO_HIRE
+  STRONG_NO_HIRE
+}
+
+model Interview {
+  id          String          @id @default(uuid())
+  role        String
+  difficulty  Difficulty
+  durationMin Int
+  voice       Voice
+  status      InterviewStatus @default(CREATED)
+  createdAt   DateTime        @default(now())
+  startedAt   DateTime?
+  endedAt     DateTime?
+
+  turns  Turn[]
+  report Report?
+
+  @@index([createdAt])
+}
+
+// Saved as soon as it happens, so a dropped connection loses at most one answer.
+model Turn {
+  id          String   @id @default(uuid())
+  interviewId String
+  index       Int
+  speaker     Speaker
+  text        String
+  audioKey    String? // S3 key interviews/{interviewId}/turns/{id}.webm; candidate turns only
+  createdAt   DateTime @default(now())
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  scores    Score[]
+
+  @@unique([interviewId, index])
+}
+
+model Report {
+  id           String   @id @default(uuid())
+  interviewId  String   @unique
+  overallScore Float
+  verdict      Verdict
+  summary      String
+  createdAt    DateTime @default(now())
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  scores    Score[]
+}
+
+model Score {
+  id       String  @id @default(uuid())
+  reportId String
+  skill    Skill
+  score    Int // 1-4
+  comment  String
+  quote    String? // null when the LLM quote was not found in the transcript
+  turnId   String? // the quoted candidate turn
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  turn   Turn?  @relation(fields: [turnId], references: [id], onDelete: SetNull)
+
+  @@unique([reportId, skill])
+}

@@ -1,7 +1,5 @@
-// Types shared by client and server.
-// The full API contract (REST bodies and WebSocket messages) is added here in the next step.
-
-export interface HealthResponse {
-  status: 'ok'
-  time: string // ISO 8601 timestamp from the server
-}
+// API contract shared by client and server.
+// Changes go through a pull request reviewed by Yifei.
+export * from './domain.ts'
+export * from './rest.ts'
+export * from './ws.ts'
