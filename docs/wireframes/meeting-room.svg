@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="534" viewBox="0 0 1120 534" role="img" aria-labelledby="title description">
+<title id="title">Meeting Room wireframes</title><desc id="description">Candidate turn with an idle interviewer ring, active microphone, countdown, and live captions. The phone layout stacks the tiles above the pinned controls.</desc>
+<g font-family="Arial, Helvetica, sans-serif">
+<rect x="0" y="0" width="1120" height="534" rx="12" fill="#edf1f6" stroke="none"/>
+<text x="24" y="32" fill="#4d5c71" font-size="14" font-weight="650" text-anchor="start">DESKTOP</text>
+<rect x="24" y="50" width="728" height="460" rx="10" fill="#ffffff" stroke="#a6b1c2"/>
+<path d="M24 101 L752 101" stroke="#a6b1c2"/>
+<text x="42" y="82" fill="#182337" font-size="16" font-weight="650" text-anchor="start">Backend intern · Medium</text>
+<text x="778" y="32" fill="#4d5c71" font-size="14" font-weight="650" text-anchor="start">PHONE</text>
+<rect x="778" y="50" width="318" height="460" rx="10" fill="#ffffff" stroke="#a6b1c2"/>
+<path d="M778 101 L1096 101" stroke="#a6b1c2"/>
+<text x="796" y="82" fill="#182337" font-size="16" font-weight="650" text-anchor="start">Backend intern · Medium</text>
+<rect x="636" y="63" width="98" height="24" rx="4" fill="#e7eefb" stroke="none"/>
+<text x="685.0" y="79" fill="#284b85" font-size="13" font-weight="650" text-anchor="middle">07:42 left</text>
+<rect x="1005" y="63" width="76" height="24" rx="4" fill="#e7eefb" stroke="none"/>
+<text x="1043.0" y="79" fill="#284b85" font-size="13" font-weight="650" text-anchor="middle">07:42</text>
+<rect x="48" y="122" width="332" height="124" rx="7" fill="#f5f7fa" stroke="#a6b1c2"/>
+<circle cx="156.0" cy="184.0" r="10" fill="#ffffff" stroke="#a6b1c2"/>
+<circle cx="156.0" cy="184.0" r="6" fill="#c4cddb" stroke="none"/>
+<text x="174.0" y="190.0" fill="#182337" font-size="18" font-weight="650" text-anchor="start">Interviewer</text>
+<rect x="396" y="122" width="332" height="124" rx="7" fill="#f5f7fa" stroke="#a6b1c2"/>
+<text x="494.0" y="190.0" fill="#182337" font-size="18" font-weight="650" text-anchor="start">You</text>
+<rect x="543.0" y="178.0" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="553.0" y="178.0" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="563.0" y="178.0" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="573.0" y="178.0" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="583.0" y="178.0" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="593.0" y="178.0" width="6" height="12" rx="1" fill="#c4cddb" stroke="none"/>
+<rect x="603.0" y="178.0" width="6" height="12" rx="1" fill="#c4cddb" stroke="none"/>
+<rect x="613.0" y="178.0" width="6" height="12" rx="1" fill="#c4cddb" stroke="none"/>
+<circle cx="53" cy="271" r="5" fill="#284b85" stroke="none"/>
+<text x="66" y="276" fill="#284b85" font-size="15" font-weight="650" text-anchor="start">Your turn · 0:12 recording</text>
+<circle cx="803" cy="269" r="5" fill="#284b85" stroke="none"/>
+<text x="816" y="274" fill="#284b85" font-size="15" font-weight="650" text-anchor="start">Your turn · 0:12 recording</text>
+<rect x="48" y="292" width="680" height="141" rx="6" fill="#ffffff" stroke="#a6b1c2"/>
+<rect x="798" y="289" width="278" height="144" rx="6" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="61" y="316" fill="#4d5c71" font-size="14" font-weight="650" text-anchor="start">Captions</text>
+<text x="810" y="313" fill="#4d5c71" font-size="14" font-weight="650" text-anchor="start">Captions</text>
+<text x="61" y="344" fill="#182337" font-size="14" font-weight="650" text-anchor="start">Interviewer</text>
+<text x="167" y="344" fill="#182337" font-size="15" font-weight="400" text-anchor="start">Tell me about a project you’re proud of.</text>
+<text x="61" y="374" fill="#182337" font-size="14" font-weight="650" text-anchor="start">You</text>
+<text x="167" y="374" fill="#182337" font-size="15" font-weight="400" text-anchor="start">I built a vector search service that…</text>
+<text x="61" y="404" fill="#182337" font-size="14" font-weight="650" text-anchor="start">Interviewer</text>
+<text x="167" y="404" fill="#182337" font-size="15" font-weight="400" text-anchor="start">Why did you pick HNSW over IVF?</text>
+<path d="M25 450 L751 450" stroke="#a6b1c2"/>
+<rect x="232" y="463" width="150" height="36" rx="6" fill="#284b85" stroke="#284b85"/>
+<text x="307.0" y="486.1" fill="#ffffff" font-size="15" font-weight="650" text-anchor="middle">Finish answer</text>
+<rect x="400" y="463" width="150" height="36" rx="6" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="475.0" y="486.1" fill="#182337" font-size="15" font-weight="650" text-anchor="middle">End interview</text>
+<rect x="798" y="117" width="278" height="62" rx="7" fill="#f5f7fa" stroke="#a6b1c2"/>
+<circle cx="879.0" cy="148.0" r="10" fill="#ffffff" stroke="#a6b1c2"/>
+<circle cx="879.0" cy="148.0" r="6" fill="#c4cddb" stroke="none"/>
+<text x="897.0" y="154.0" fill="#182337" font-size="18" font-weight="650" text-anchor="start">Interviewer</text>
+<rect x="798" y="188" width="278" height="62" rx="7" fill="#f5f7fa" stroke="#a6b1c2"/>
+<text x="869.0" y="225.0" fill="#182337" font-size="18" font-weight="650" text-anchor="start">You</text>
+<rect x="918.0" y="213.0" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="928.0" y="213.0" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="938.0" y="213.0" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="948.0" y="213.0" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="958.0" y="213.0" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="968.0" y="213.0" width="6" height="12" rx="1" fill="#c4cddb" stroke="none"/>
+<rect x="978.0" y="213.0" width="6" height="12" rx="1" fill="#c4cddb" stroke="none"/>
+<rect x="988.0" y="213.0" width="6" height="12" rx="1" fill="#c4cddb" stroke="none"/>
+<text x="810" y="339" fill="#182337" font-size="14" font-weight="650" text-anchor="start">You</text>
+<text x="810" y="358" fill="#182337" font-size="14" font-weight="400" text-anchor="start">I built a vector search service that…</text>
+<text x="810" y="385" fill="#182337" font-size="14" font-weight="650" text-anchor="start">Interviewer</text>
+<text x="810" y="404" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Why did you pick HNSW over IVF?</text>
+<rect x="1066" y="322" width="3" height="97" rx="1" fill="#e1e6ed" stroke="none"/>
+<rect x="1066" y="378" width="3" height="40" rx="1" fill="#a6b1c2" stroke="none"/>
+<path d="M779 450 L1095 450" stroke="#a6b1c2"/>
+<rect x="798" y="463" width="157" height="36" rx="6" fill="#284b85" stroke="#284b85"/>
+<text x="876.5" y="486.1" fill="#ffffff" font-size="15" font-weight="650" text-anchor="middle">Finish answer</text>
+<rect x="963" y="463" width="113" height="36" rx="6" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="1019.5" y="485.76" fill="#182337" font-size="14" font-weight="650" text-anchor="middle">End interview</text>
+</g></svg>
