@@ -34,6 +34,9 @@ Other commands:
 - `npm run db:migrate -w server`: apply schema changes to the database (after editing `server/prisma/schema.prisma`)
 - `npm run tts -w server -- "Some question?"`: speak a sentence with Higgs TTS, save it as a WAV file, and print the time to first audio
 - `npm run stt -w server -- answer.webm`: transcribe an audio file with Higgs STT
+- `npm run s3:check -w server`: upload, download and delete a test object in the S3 bucket
+
+The REST API is documented in [docs/api.md](docs/api.md).
 
 ## Workflow
 
