@@ -15,4 +15,33 @@ The contract lives in `shared/src/` (`domain.ts`, `rest.ts`, `ws.ts`); the schem
 6. **Quotes can be missing.** `Score.quote` and `Score.turnId` are nullable: a quote the LLM returns that is not in the transcript is removed rather than shown.
 7. **Deletes cascade in the database.** Deleting an Interview deletes its Turns, Report and Scores; the server deletes the S3 objects first.
 
+## C2: foundations (2026-11-15)
+
+1. **STT runs inside a Realtime session.** Boson has no file-upload transcription endpoint; `higgs-stt-3.1` is only available in Higgs Realtime. `server/src/services/stt.ts` opens a server-side Realtime WebSocket in manual mode (no turn detection, text output, never sends `response.create`), appends the answer as PCM, commits, and waits for `conversation.item.input_audio_transcription.completed`. Answers are committed in pieces of at most 55 s.
+2. **ffmpeg decodes the answer.** `ffmpeg-static` ships an ffmpeg binary in `node_modules`, so `npm install` is enough on every platform. It turns the WebM/Opus recording into 24 kHz PCM for STT.
+3. **Every external call has a timeout and one retry** (`server/src/services/retry.ts`). Only errors that another try can fix are retried: network errors, timeouts, 429 and 5xx. TTS retries only before its first byte.
+4. **Voices:** `FEMALE` is Boson's preset `eleanor`, `MALE` is `oliver` (both calm).
+5. **Prisma 7 uses the `pg` driver adapter** (`server/src/db.ts`). The generated client is not committed; `npm install` runs `prisma generate`.
+6. **Measured (2026-11-15):** TTS first audio 0.5–0.8 s for one question; STT of a 5 s WebM answer 0.6 s, of a 76 s answer (two pieces) 2.9 s, with nothing lost at the cut.
+
 Open question: *Score again* on the report page needs a way to restart scoring; none of the six REST endpoints does this yet. Decide in stage 2.1.
+
+## Proposal feedback: quotes must match their turn (2026-11-15)
+
+Feedback received on the proposal:
+
+> DeepDive gives spoken interview practice a clear purpose and ties its report to evidence the candidate can check. Measuring the voice path first, segmenting answers within the 60-second STT limit you observed, and dropping the avatar when it slowed the conversation are good examples of basing design decisions on your own measurements.
+>
+> Removing quotes that do not appear in the transcript is a useful safeguard. However, a quote can appear in the transcript and still come from the interviewer or from a different answer than the one it links to. In your five planned test reports, checking that each retained quote belongs to the linked candidate turn would help confirm that the text quote and audio playback match.
+
+What we keep: measuring before deciding (C2 measurements above), answer segmentation, no avatar.
+
+What we change: decision 6 only checked that a quote is somewhere in the transcript. If the quote came from the interviewer or from another answer, the quote text and *Play my answer* would not match. The rules below replace decision 6 with a check against the one linked turn.
+
+1. **The LLM names the turn.** The scoring prompt numbers every turn and labels its speaker. For each score the LLM returns `quote` together with the `turnIndex` it was taken from.
+2. **The server checks the quote against that one turn.** A quote is kept only if all of these hold; otherwise `quote` and `turnId` are both set to null:
+   - the turn belongs to this interview;
+   - the turn's speaker is `CANDIDATE`;
+   - after normalizing case, whitespace, punctuation and curly quotes, the quote is a substring of that turn's text.
+   The server never moves a quote to a different turn.
+3. **C5 check.** For each of the five test reports, record per score: the quote, the linked turn index and speaker, whether the quote is in that turn's text, and whether *Play my answer* plays the same words. Every kept quote must pass; dropped quotes are counted.

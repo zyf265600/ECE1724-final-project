@@ -13,11 +13,13 @@ ECE1724 final project, Team 28. Proposal: [docs/Team28_Final_Project_Proposal.md
 
 ## Development guide
 
-Requirements: Node.js 22 or newer.
+Requirements: Node.js 22 or newer, and PostgreSQL 16 or newer running locally.
 
 ```bash
-npm install                            # installs client, server and shared in one step
+npm install                            # installs client, server and shared; generates the Prisma client
 cp server/.env.example server/.env     # then fill in the values
+createdb deepdive                      # empty database named in DATABASE_URL
+npm run db:migrate -w server           # creates the tables
 npm run dev                            # starts server (port 4000) and client (port 5173)
 ```
 
@@ -29,6 +31,9 @@ Other commands:
 - `npm run typecheck`: type-check server and client
 - `npm run build`: production build of the client
 - `npm run lint -w client`: lint the client
+- `npm run db:migrate -w server`: apply schema changes to the database (after editing `server/prisma/schema.prisma`)
+- `npm run tts -w server -- "Some question?"`: speak a sentence with Higgs TTS, save it as a WAV file, and print the time to first audio
+- `npm run stt -w server -- answer.webm`: transcribe an audio file with Higgs STT
 
 ## Workflow
 

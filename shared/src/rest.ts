@@ -39,8 +39,8 @@ export interface ScoreDto {
   skill: Skill
   score: number // 1-4
   comment: string
-  quote: string | null // the candidate's own words; null if the LLM quote was not found in the transcript
-  turnId: string | null // the candidate turn that contains the quote
+  quote: string | null // the candidate's own words; null if the quote is not in the linked candidate turn
+  turnId: string | null // a CANDIDATE turn of this interview whose text contains the quote; null when quote is null
 }
 
 export interface ReportDto {
