@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="620" viewBox="0 0 1120 620" role="img" aria-labelledby="title description">
+<title id="title">Setup wireframes</title><desc id="description">Interview role, difficulty, length, voice, and microphone check. The phone layout stacks the fields and pins Start interview to the bottom.</desc>
+<g font-family="Arial, Helvetica, sans-serif">
+<rect x="0" y="0" width="1120" height="620" rx="12" fill="#edf1f6" stroke="none"/>
+<text x="24" y="32" fill="#4d5c71" font-size="14" font-weight="650" text-anchor="start">DESKTOP</text>
+<rect x="24" y="50" width="728" height="546" rx="10" fill="#ffffff" stroke="#a6b1c2"/>
+<path d="M24 101 L752 101" stroke="#a6b1c2"/>
+<text x="42" y="82" fill="#182337" font-size="16" font-weight="650" text-anchor="start">←  DeepDive</text>
+<text x="778" y="32" fill="#4d5c71" font-size="14" font-weight="650" text-anchor="start">PHONE</text>
+<rect x="778" y="50" width="318" height="546" rx="10" fill="#ffffff" stroke="#a6b1c2"/>
+<path d="M778 101 L1096 101" stroke="#a6b1c2"/>
+<text x="796" y="82" fill="#182337" font-size="16" font-weight="650" text-anchor="start">←  DeepDive</text>
+<text x="48" y="147" fill="#182337" font-size="27" font-weight="650" text-anchor="start">New interview</text>
+<text x="48" y="192" fill="#182337" font-size="16" font-weight="650" text-anchor="start">Role</text>
+<text x="48" y="250" fill="#182337" font-size="16" font-weight="650" text-anchor="start">Difficulty</text>
+<text x="48" y="308" fill="#182337" font-size="16" font-weight="650" text-anchor="start">Length</text>
+<text x="48" y="366" fill="#182337" font-size="16" font-weight="650" text-anchor="start">Voice</text>
+<text x="48" y="424" fill="#182337" font-size="16" font-weight="650" text-anchor="start">Microphone</text>
+<rect x="194" y="169" width="362" height="36" rx="6" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="206" y="192" fill="#182337" font-size="15" font-weight="400" text-anchor="start">Software engineer intern</text>
+<rect x="194" y="227" width="110" height="36" rx="5" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="249.0" y="250.0" fill="#182337" font-size="14" font-weight="400" text-anchor="middle">Easy</text>
+<rect x="310" y="227" width="110" height="36" rx="5" fill="#e7eefb" stroke="#284b85"/>
+<text x="365.0" y="250.0" fill="#284b85" font-size="14" font-weight="650" text-anchor="middle">● Medium</text>
+<rect x="426" y="227" width="110" height="36" rx="5" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="481.0" y="250.0" fill="#182337" font-size="14" font-weight="400" text-anchor="middle">Hard</text>
+<rect x="194" y="285" width="110" height="36" rx="5" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="249.0" y="308.0" fill="#182337" font-size="14" font-weight="400" text-anchor="middle">5 min</text>
+<rect x="310" y="285" width="110" height="36" rx="5" fill="#e7eefb" stroke="#284b85"/>
+<text x="365.0" y="308.0" fill="#284b85" font-size="14" font-weight="650" text-anchor="middle">● 10 min</text>
+<rect x="426" y="285" width="110" height="36" rx="5" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="481.0" y="308.0" fill="#182337" font-size="14" font-weight="400" text-anchor="middle">15 min</text>
+<rect x="194" y="343" width="110" height="36" rx="5" fill="#e7eefb" stroke="#284b85"/>
+<text x="249.0" y="366.0" fill="#284b85" font-size="14" font-weight="650" text-anchor="middle">● Female</text>
+<rect x="310" y="343" width="110" height="36" rx="5" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="365.0" y="366.0" fill="#182337" font-size="14" font-weight="400" text-anchor="middle">Male</text>
+<rect x="194" y="401" width="162" height="36" rx="6" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="275.0" y="424.1" fill="#182337" font-size="15" font-weight="650" text-anchor="middle">Test microphone</text>
+<rect x="373" y="413" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="383" y="413" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="393" y="413" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="403" y="413" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="413" y="413" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="423" y="413" width="6" height="12" rx="1" fill="#c4cddb" stroke="none"/>
+<rect x="433" y="413" width="6" height="12" rx="1" fill="#c4cddb" stroke="none"/>
+<rect x="443" y="413" width="6" height="12" rx="1" fill="#c4cddb" stroke="none"/>
+<text x="466" y="424" fill="#284b85" font-size="14" font-weight="650" text-anchor="start">Working</text>
+<path d="M48 470 L728 470" stroke="#a6b1c2"/>
+<rect x="561" y="490" width="167" height="36" rx="6" fill="#284b85" stroke="#284b85"/>
+<text x="644.5" y="513.1" fill="#ffffff" font-size="15" font-weight="650" text-anchor="middle">Start interview</text>
+<text x="798" y="140" fill="#182337" font-size="24" font-weight="650" text-anchor="start">New interview</text>
+<text x="798" y="174" fill="#182337" font-size="14" font-weight="650" text-anchor="start">Role</text>
+<text x="798" y="239" fill="#182337" font-size="14" font-weight="650" text-anchor="start">Difficulty</text>
+<text x="798" y="304" fill="#182337" font-size="14" font-weight="650" text-anchor="start">Length</text>
+<text x="798" y="369" fill="#182337" font-size="14" font-weight="650" text-anchor="start">Voice</text>
+<text x="798" y="434" fill="#182337" font-size="14" font-weight="650" text-anchor="start">Microphone</text>
+<rect x="798" y="181" width="278" height="36" rx="6" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="810" y="204" fill="#182337" font-size="15" font-weight="400" text-anchor="start">Software engineer intern</text>
+<rect x="798" y="246" width="88" height="36" rx="5" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="842.0" y="269.0" fill="#182337" font-size="14" font-weight="400" text-anchor="middle">Easy</text>
+<rect x="892" y="246" width="88" height="36" rx="5" fill="#e7eefb" stroke="#284b85"/>
+<text x="936.0" y="269.0" fill="#284b85" font-size="14" font-weight="650" text-anchor="middle">● Medium</text>
+<rect x="986" y="246" width="88" height="36" rx="5" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="1030.0" y="269.0" fill="#182337" font-size="14" font-weight="400" text-anchor="middle">Hard</text>
+<rect x="798" y="311" width="88" height="36" rx="5" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="842.0" y="334.0" fill="#182337" font-size="14" font-weight="400" text-anchor="middle">5 min</text>
+<rect x="892" y="311" width="88" height="36" rx="5" fill="#e7eefb" stroke="#284b85"/>
+<text x="936.0" y="334.0" fill="#284b85" font-size="14" font-weight="650" text-anchor="middle">● 10 min</text>
+<rect x="986" y="311" width="88" height="36" rx="5" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="1030.0" y="334.0" fill="#182337" font-size="14" font-weight="400" text-anchor="middle">15 min</text>
+<rect x="798" y="376" width="88" height="36" rx="5" fill="#e7eefb" stroke="#284b85"/>
+<text x="842.0" y="399.0" fill="#284b85" font-size="14" font-weight="650" text-anchor="middle">● Female</text>
+<rect x="892" y="376" width="88" height="36" rx="5" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="936.0" y="399.0" fill="#182337" font-size="14" font-weight="400" text-anchor="middle">Male</text>
+<rect x="798" y="443" width="149" height="36" rx="6" fill="#ffffff" stroke="#a6b1c2"/>
+<text x="872.5" y="466.1" fill="#182337" font-size="15" font-weight="650" text-anchor="middle">Test microphone</text>
+<rect x="960" y="455" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="970" y="455" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="980" y="455" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="990" y="455" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="1000" y="455" width="6" height="12" rx="1" fill="#284b85" stroke="none"/>
+<rect x="1010" y="455" width="6" height="12" rx="1" fill="#c4cddb" stroke="none"/>
+<rect x="1020" y="455" width="6" height="12" rx="1" fill="#c4cddb" stroke="none"/>
+<rect x="1030" y="455" width="6" height="12" rx="1" fill="#c4cddb" stroke="none"/>
+<text x="960" y="486" fill="#284b85" font-size="13" font-weight="650" text-anchor="start">Working</text>
+<path d="M779 534 L1095 534" stroke="#a6b1c2"/>
+<rect x="798" y="547" width="278" height="36" rx="6" fill="#284b85" stroke="#284b85"/>
+<text x="937.0" y="570.1" fill="#ffffff" font-size="15" font-weight="650" text-anchor="middle">Start interview</text>
+</g></svg>

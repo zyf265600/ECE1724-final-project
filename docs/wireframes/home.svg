@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="484" viewBox="0 0 1120 484" role="img" aria-labelledby="title description">
+<title id="title">Home wireframes</title><desc id="description">Desktop history table and phone history cards beneath a button to start a new interview.</desc>
+<g font-family="Arial, Helvetica, sans-serif">
+<rect x="0" y="0" width="1120" height="484" rx="12" fill="#edf1f6" stroke="none"/>
+<text x="24" y="32" fill="#4d5c71" font-size="14" font-weight="650" text-anchor="start">DESKTOP</text>
+<rect x="24" y="50" width="728" height="410" rx="10" fill="#ffffff" stroke="#a6b1c2"/>
+<path d="M24 101 L752 101" stroke="#a6b1c2"/>
+<text x="42" y="82" fill="#182337" font-size="16" font-weight="650" text-anchor="start">DeepDive</text>
+<text x="778" y="32" fill="#4d5c71" font-size="14" font-weight="650" text-anchor="start">PHONE</text>
+<rect x="778" y="50" width="318" height="410" rx="10" fill="#ffffff" stroke="#a6b1c2"/>
+<path d="M778 101 L1096 101" stroke="#a6b1c2"/>
+<text x="796" y="82" fill="#182337" font-size="16" font-weight="650" text-anchor="start">DeepDive</text>
+<text x="48" y="147" fill="#182337" font-size="27" font-weight="650" text-anchor="start">Practice explaining your project.</text>
+<text x="48" y="175" fill="#4d5c71" font-size="16" font-weight="400" text-anchor="start">An AI interviewer asks spoken follow-ups, then scores you.</text>
+<rect x="48" y="193" width="194" height="36" rx="6" fill="#284b85" stroke="#284b85"/>
+<text x="145.0" y="216.1" fill="#ffffff" font-size="15" font-weight="650" text-anchor="middle">Start a new interview</text>
+<text x="48" y="266" fill="#182337" font-size="19" font-weight="650" text-anchor="start">Past interviews</text>
+<rect x="48" y="279" width="680" height="148" rx="5" fill="#ffffff" stroke="#a6b1c2"/>
+<rect x="49" y="280" width="678" height="27" rx="4" fill="#f5f7fa" stroke="none"/>
+<text x="60" y="298" fill="#4d5c71" font-size="13" font-weight="650" text-anchor="start">Date</text>
+<text x="147" y="298" fill="#4d5c71" font-size="13" font-weight="650" text-anchor="start">Role</text>
+<text x="325" y="298" fill="#4d5c71" font-size="13" font-weight="650" text-anchor="start">Difficulty</text>
+<text x="428" y="298" fill="#4d5c71" font-size="13" font-weight="650" text-anchor="start">Length</text>
+<text x="509" y="298" fill="#4d5c71" font-size="13" font-weight="650" text-anchor="start">Result</text>
+<path d="M49 307 L727 307" stroke="#a6b1c2"/>
+<text x="60" y="327" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Nov 15</text>
+<text x="147" y="327" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Backend intern</text>
+<text x="325" y="327" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Medium</text>
+<text x="428" y="327" fill="#182337" font-size="14" font-weight="400" text-anchor="start">10 min</text>
+<text x="509" y="327" fill="#284b85" font-size="14" font-weight="650" text-anchor="start">3.2 / 4 · Hire</text>
+<text x="704" y="327" fill="#182337" font-size="14" font-weight="400" text-anchor="start">×</text>
+<text x="662" y="327" fill="#4d5c71" font-size="17" font-weight="650" text-anchor="start">›</text>
+<path d="M49 337 L727 337" stroke="#a6b1c2"/>
+<text x="60" y="357" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Nov 14</text>
+<text x="147" y="357" fill="#182337" font-size="14" font-weight="400" text-anchor="start">ML engineer</text>
+<text x="325" y="357" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Hard</text>
+<text x="428" y="357" fill="#182337" font-size="14" font-weight="400" text-anchor="start">15 min</text>
+<text x="509" y="357" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Scoring…</text>
+<text x="704" y="357" fill="#182337" font-size="14" font-weight="400" text-anchor="start">×</text>
+<text x="662" y="357" fill="#4d5c71" font-size="17" font-weight="650" text-anchor="start">›</text>
+<path d="M49 367 L727 367" stroke="#a6b1c2"/>
+<text x="60" y="387" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Nov 14</text>
+<text x="147" y="387" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Frontend intern</text>
+<text x="325" y="387" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Easy</text>
+<text x="428" y="387" fill="#182337" font-size="14" font-weight="400" text-anchor="start">5 min</text>
+<text x="509" y="387" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Failed</text>
+<text x="704" y="387" fill="#182337" font-size="14" font-weight="400" text-anchor="start">×</text>
+<text x="662" y="387" fill="#4d5c71" font-size="17" font-weight="650" text-anchor="start">›</text>
+<path d="M49 397 L727 397" stroke="#a6b1c2"/>
+<text x="60" y="417" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Nov 13</text>
+<text x="147" y="417" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Backend intern</text>
+<text x="325" y="417" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Medium</text>
+<text x="428" y="417" fill="#182337" font-size="14" font-weight="400" text-anchor="start">10 min</text>
+<text x="509" y="417" fill="#182337" font-size="14" font-weight="400" text-anchor="start">Unfinished</text>
+<text x="704" y="417" fill="#182337" font-size="14" font-weight="400" text-anchor="start">×</text>
+<text x="798" y="138" fill="#182337" font-size="24" font-weight="650" text-anchor="start">Practice explaining</text>
+<text x="798" y="165" fill="#182337" font-size="24" font-weight="650" text-anchor="start">your project.</text>
+<text x="798" y="191" fill="#4d5c71" font-size="14" font-weight="400" text-anchor="start">Spoken follow-ups and scored feedback.</text>
+<rect x="798" y="208" width="278" height="36" rx="6" fill="#284b85" stroke="#284b85"/>
+<text x="937.0" y="231.1" fill="#ffffff" font-size="15" font-weight="650" text-anchor="middle">Start a new interview</text>
+<text x="798" y="277" fill="#182337" font-size="18" font-weight="650" text-anchor="start">Past interviews</text>
+<rect x="798" y="289" width="278" height="72" rx="6" fill="#f5f7fa" stroke="#a6b1c2"/>
+<text x="810" y="309" fill="#182337" font-size="15" font-weight="650" text-anchor="start">Backend intern</text>
+<text x="810" y="330" fill="#4d5c71" font-size="13" font-weight="400" text-anchor="start">Nov 15 · Medium · 10 min</text>
+<text x="810" y="350" fill="#284b85" font-size="14" font-weight="650" text-anchor="start">3.2 / 4 · Hire</text>
+<text x="1062" y="332" fill="#4d5c71" font-size="19" font-weight="400" text-anchor="end">×</text>
+<rect x="798" y="369" width="278" height="72" rx="6" fill="#f5f7fa" stroke="#a6b1c2"/>
+<text x="810" y="389" fill="#182337" font-size="15" font-weight="650" text-anchor="start">ML engineer</text>
+<text x="810" y="410" fill="#4d5c71" font-size="13" font-weight="400" text-anchor="start">Nov 14 · Hard · 15 min</text>
+<text x="810" y="430" fill="#4d5c71" font-size="14" font-weight="650" text-anchor="start">Scoring…</text>
+<text x="1062" y="412" fill="#4d5c71" font-size="19" font-weight="400" text-anchor="end">×</text>
+</g></svg>
