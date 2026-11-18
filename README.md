@@ -23,7 +23,7 @@ npm run db:migrate -w server           # creates the tables
 npm run dev                            # starts server (port 4000) and client (port 5173)
 ```
 
-Open <http://localhost:5173>. The page should show "Server status: ok".
+Open <http://localhost:5173>: the Home page lists past interviews, and *Start a new interview* opens the Setup page.
 In development, Vite forwards `/api` and `/ws` requests to the server, so the client always calls relative paths such as `/api/health`.
 
 Other commands:
