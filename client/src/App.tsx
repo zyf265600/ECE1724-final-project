@@ -1,32 +1,32 @@
-import { useEffect, useState } from 'react'
-import type { HealthResponse } from '@deepdive/shared'
+import { BrowserRouter, Link, Route, Routes } from 'react-router'
+import { Layout } from '@/components/Layout'
+import { HomePage } from '@/pages/HomePage'
+import { RoomPage } from '@/pages/RoomPage'
+import { SetupPage } from '@/pages/SetupPage'
 
-// Placeholder page: proves the client can reach the server through the Vite proxy.
-// Real pages (Home, Setup, Meeting Room, Report) replace this later.
+// Routes from docs/wireframes.md. The report page is added in stage 2.2.
 export default function App() {
-  const [health, setHealth] = useState<HealthResponse | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json() as Promise<HealthResponse>
-      })
-      .then(setHealth)
-      .catch((err: Error) => setError(err.message))
-  }, [])
-
   return (
-    <main style={{ padding: 24 }}>
-      <h1>DeepDive</h1>
-      {error && <p>Server unreachable: {error}</p>}
-      {!error && !health && <p>Checking server…</p>}
-      {health && (
-        <p>
-          Server status: {health.status} (time {health.time})
-        </p>
-      )}
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<HomePage />} />
+          <Route path="setup" element={<SetupPage />} />
+          <Route path="interviews/:id/room" element={<RoomPage />} />
+          <Route path="*" element={<PageNotFound />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
+function PageNotFound() {
+  return (
+    <p>
+      Page not found.{' '}
+      <Link to="/" className="underline">
+        Back to home
+      </Link>
+    </p>
   )
 }
