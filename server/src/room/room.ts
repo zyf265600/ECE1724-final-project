@@ -2,6 +2,7 @@
 //
 //   interview.start -> opening question -> speak -> listening
 //   answer recording -> STT -> save turn -> LLM question -> save turn -> speak -> listening
+//   time is up after an answer -> closing line -> ended
 //
 // Every turn is saved as soon as it exists, so a reconnect continues where the
 // interview stopped (see resume()).
@@ -24,6 +25,8 @@ import { audioKey, putAudio, storageConfigured } from '../services/storage.ts'
 import { transcribe } from '../services/stt.ts'
 import { streamSpeech } from '../services/tts.ts'
 
+const CLOSING_LINE = "That's all the time we have. Thanks for walking me through your project."
+
 export class Room {
   private state: RoomState | null = null // null until the interview starts
 
@@ -42,8 +45,8 @@ export class Room {
         const last = this.turns.at(-1)
         // The last question was already asked (its caption is in the REST transcript).
         if (last?.speaker === 'INTERVIEWER') return this.setState('listening')
-        // Stopped after an answer, or before the first question: ask now.
-        return this.askNext()
+        // Stopped after an answer, or before the first question: go on from there.
+        return this.continueAfterAnswer()
       }
       default:
         return this.setState('ended')
@@ -80,9 +83,14 @@ export class Room {
     await this.askNext()
   }
 
-  // The candidate ends the interview. Scoring (stage 2.1) picks up interviews in SCORING.
+  // The candidate ends the interview early.
   private async onEnd() {
     if (this.interview.status !== 'LIVE') return this.sendError('BAD_STATE', 'The interview is not running.', false)
+    await this.finish()
+  }
+
+  // LIVE -> SCORING. Scoring (stage 2.1) picks up interviews in SCORING.
+  private async finish() {
     this.interview = await prisma.interview.update({
       where: { id: this.interview.id },
       data: { status: 'SCORING', endedAt: new Date() },
@@ -122,7 +130,22 @@ export class Room {
     const key = await this.storeRecording(turnId, recording)
     const turn = await this.saveTurn('CANDIDATE', text, key, turnId)
     this.send({ type: 'caption', turn: toTurnDto(turn) })
-    await this.askNext()
+    await this.continueAfterAnswer()
+  }
+
+  // The time limit is checked between answers: a started answer is always heard out.
+  private async continueAfterAnswer() {
+    if (!this.timeIsUp()) return this.askNext()
+    this.setState('thinking')
+    const turn = await this.saveTurn('INTERVIEWER', CLOSING_LINE, null)
+    this.send({ type: 'caption', turn: toTurnDto(turn) })
+    await this.speak(turn)
+    await this.finish()
+  }
+
+  private timeIsUp(): boolean {
+    const { startedAt, durationMin } = this.interview
+    return startedAt !== null && Date.now() - startedAt.getTime() >= durationMin * 60_000
   }
 
   private async askNext() {
