@@ -35,6 +35,11 @@ Open question: *Score again* on the report page needs a way to restart scoring; 
 5. **The microphone opens on the Begin click**, together with unlocking audio. It records only in `listening`, after the question has finished playing.
 6. **Measured (2026-11-17):** DeepSeek writes a follow-up in about 1 s. From *Finish answer* on a 10 s answer to the next question's caption and first audio: about 2.4 s.
 
+## C4: full interview (2026-11-17)
+
+1. **The time limit is checked between answers.** After each answer the server compares `startedAt + durationMin` with the clock. If time is up, the interviewer says a fixed closing line instead of a new question, and the interview moves to `SCORING`. An answer already in progress is always heard out; the room shows "Time is up. Finish your answer to end the interview."
+2. **Unfinished interviews can be resumed from Home.** Clicking a `CREATED` or `LIVE` row opens its room; *Resume interview* reconnects and continues (C3 decision 4).
+
 ## Proposal feedback: quotes must match their turn (2026-11-15)
 
 Feedback received on the proposal:
