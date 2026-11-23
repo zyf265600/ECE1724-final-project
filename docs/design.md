@@ -47,9 +47,23 @@ Code: `server/src/services/scoring.ts`. Review of five reports: [scoring-review.
 1. **One LLM call in JSON mode** returns a summary and, per skill, a score, a comment, a quote and the quote's turn number. The rubric gives each score 1–4 a one-line meaning, so scores are comparable between interviews. Temperature 0.2.
 2. **Validation:** exactly one entry per skill, integer score 1–4, non-empty comment and summary. An invalid reply is asked for once more; after that the interview is `FAILED`.
 3. **Quotes** follow the rule in the next section (the linked turn must be a CANDIDATE turn of this interview that contains the quote). A dropped quote is logged on the server.
-4. **Verdict from the weighted score:** ≥ 3.25 `STRONG_HIRE`, ≥ 2.5 `HIRE`, ≥ 1.75 `NO_HIRE`, otherwise `STRONG_NO_HIRE`. An interview with no answers is not sent to the LLM: every skill gets 1.
+4. **Verdict from the weighted score**, rounded to one decimal as the report shows it: ≥ 3.3 `STRONG_HIRE`, ≥ 2.5 `HIRE`, ≥ 1.8 `NO_HIRE`, otherwise `STRONG_NO_HIRE`. (Before C6 the score kept two decimals, so 2.45 showed as "2.5" next to `NO_HIRE`.) An interview with no answers is not sent to the LLM: every skill gets 1.
 5. **Score again** is a seventh endpoint, `POST /api/interviews/:id/report` (202). It works only on `FAILED` interviews, so a finished report is never replaced. The Proposal promises *Score again* for failures; none of the six endpoints could do it.
 6. **Scoring starts when the interview ends** (in the room, then `report.ready`), and again at server start for interviews still in `SCORING`.
+
+## C6: report, history, playback (2026-11-17)
+
+1. **The room opens the report by itself** once the closing words have played and scoring is over (`report.ready`, `SCORING_FAILED`, or the socket closed). The report page polls every 3 s while the interview is `SCORING`, so a lost socket only delays it.
+2. **One report page for every finished state:** `SCORING` shows "Scoring your answers…", `FAILED` shows *Score again*, `CREATED` / `LIVE` link back to the room.
+3. **Markdown is built in the browser** from the loaded interview and report (verdict, scores, comments, quotes, then the transcript). No extra endpoint.
+4. ***Play my answer* appears only when the quoted turn has a recording** (`hasAudio`). Until S3 is set up, no turn has one, so the button never shows.
+5. **Fixes from a code review of C3–C6:**
+   - A room socket has an `error` listener; a bad frame (for example an answer above the size limit) used to crash the server.
+   - *End interview* while the interviewer speaks: nothing in flight may leave `ended` again, and the interview is ended (and scored) only once.
+   - A room stops working once its socket closes; the next socket's room continues from the saved turns, so the two never save the same turn number.
+   - On connect the server resends every saved turn as a caption, so a question saved during a disconnect still appears. A `CREATED` interview gets no `state` on connect (changes C1 decision 3).
+   - Quotes must match whole words ("ache" no longer matches inside "cache").
+6. **Browsers:** Chrome and Edge. Safari cannot record WebM; its MP4 answer is transcribed correctly but stored under a `.webm` key, so playback may fail there.
 
 ## Proposal feedback: quotes must match their turn (2026-11-15)
 
