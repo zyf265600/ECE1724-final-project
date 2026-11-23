@@ -1,0 +1,60 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ANSWER_MIME_TYPE } from '@deepdive/shared'
+
+// Records one answer at a time from a microphone stream opened once per interview.
+export function useRecorder() {
+  const stream = useRef<MediaStream | null>(null)
+  const recorder = useRef<MediaRecorder | null>(null)
+  const [recording, setRecording] = useState(false)
+  const [seconds, setSeconds] = useState(0)
+
+  useEffect(() => {
+    if (!recording) return
+    const started = Date.now()
+    const timer = setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 250)
+    return () => clearInterval(timer)
+  }, [recording])
+
+  // Release the microphone when the page closes.
+  useEffect(
+    () => () => {
+      recorder.current?.stop()
+      stream.current?.getTracks().forEach((track) => track.stop())
+    },
+    [],
+  )
+
+  // Asks for the microphone. Throws if the browser blocks it.
+  const open = useCallback(async () => {
+    stream.current ??= await navigator.mediaDevices.getUserMedia({ audio: true })
+  }, [])
+
+  const start = useCallback(() => {
+    if (!stream.current || recorder.current) return
+    // Safari cannot record WebM; the server decodes whatever the browser produces.
+    const options = MediaRecorder.isTypeSupported(ANSWER_MIME_TYPE) ? { mimeType: ANSWER_MIME_TYPE } : undefined
+    const next = new MediaRecorder(stream.current, options)
+    next.start()
+    recorder.current = next
+    setSeconds(0)
+    setRecording(true)
+  }, [])
+
+  // Stops recording and returns the whole answer.
+  const stop = useCallback(
+    () =>
+      new Promise<Blob | null>((resolve) => {
+        const current = recorder.current
+        recorder.current = null
+        setRecording(false)
+        if (!current) return resolve(null)
+        const chunks: Blob[] = []
+        current.ondataavailable = (event) => chunks.push(event.data)
+        current.onstop = () => resolve(new Blob(chunks, { type: current.mimeType }))
+        current.stop()
+      }),
+    [],
+  )
+
+  return { open, start, stop, recording, seconds }
+}
