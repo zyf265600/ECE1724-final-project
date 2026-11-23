@@ -17,13 +17,14 @@ Requirements: Node.js 22 or newer, and PostgreSQL 16 or newer running locally.
 
 ```bash
 npm install                            # installs client, server and shared; generates the Prisma client
-cp server/.env.example server/.env     # then fill in the values
+cp server/.env.example server/.env     # then fill in BOSON_API_KEY and DEEPSEEK_API_KEY (S3 is optional for now)
 createdb deepdive                      # empty database named in DATABASE_URL
 npm run db:migrate -w server           # creates the tables
 npm run dev                            # starts server (port 4000) and client (port 5173)
 ```
 
 Open <http://localhost:5173>: the Home page lists past interviews, and *Start a new interview* opens the Setup page.
+*Start interview* on the Setup page opens the meeting room; *Begin* starts the voice interview (allow the microphone when the browser asks).
 In development, Vite forwards `/api` and `/ws` requests to the server, so the client always calls relative paths such as `/api/health`.
 
 Other commands:
@@ -36,7 +37,7 @@ Other commands:
 - `npm run stt -w server -- answer.webm`: transcribe an audio file with Higgs STT
 - `npm run s3:check -w server`: upload, download and delete a test object in the S3 bucket
 
-The REST API is documented in [docs/api.md](docs/api.md).
+The REST API is documented in [docs/api.md](docs/api.md). Manual checks before each merge: [docs/testing.md](docs/testing.md).
 
 ## Workflow
 
