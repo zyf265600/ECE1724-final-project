@@ -26,6 +26,15 @@ The contract lives in `shared/src/` (`domain.ts`, `rest.ts`, `ws.ts`); the schem
 
 Open question: *Score again* on the report page needs a way to restart scoring; none of the six REST endpoints does this yet. Decide in stage 2.1.
 
+## C3: one voice round (2026-11-17)
+
+1. **S3 is optional for now.** With `S3_BUCKET` empty, an answer is transcribed and saved without its recording (`audioKey` null, so `hasAudio` is false). If an upload fails, the answer is still saved without audio.
+2. **The first question is fixed text**, so the interview starts without waiting for the LLM. Follow-ups come from DeepSeek (`deepseek-chat`), one question per call, at most two sentences.
+3. **Silence never reaches STT.** Higgs STT invented a full sentence for a silent recording in our test, so the server rejects answers with no sample above about -40 dBFS.
+4. **Reconnect resumes.** On connect, a LIVE interview whose last turn is a question goes to `listening`; one whose last turn is an answer (or that has no turns) gets its next question. This is also how the client retries `LLM_FAILED`.
+5. **The microphone opens on the Begin click**, together with unlocking audio. It records only in `listening`, after the question has finished playing.
+6. **Measured (2026-11-17):** DeepSeek writes a follow-up in about 1 s. From *Finish answer* on a 10 s answer to the next question's caption and first audio: about 2.4 s.
+
 ## Proposal feedback: quotes must match their turn (2026-11-15)
 
 Feedback received on the proposal:
