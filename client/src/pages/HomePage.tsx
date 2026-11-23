@@ -77,9 +77,9 @@ export function HomePage() {
 
 function HistoryList({ items, onDelete }: { items: InterviewListItem[]; onDelete: (id: string) => void }) {
   const navigate = useNavigate()
-  const open = (item: InterviewListItem) => {
-    if (hasReport(item)) navigate(`/interviews/${item.id}/report`)
-  }
+  // Finished interviews open their report; unfinished ones go back to the room.
+  const open = (item: InterviewListItem) =>
+    navigate(hasReport(item) ? `/interviews/${item.id}/report` : `/interviews/${item.id}/room`)
 
   return (
     <>
@@ -100,7 +100,7 @@ function HistoryList({ items, onDelete }: { items: InterviewListItem[]; onDelete
             <tr
               key={item.id}
               onClick={() => open(item)}
-              className={`border-b ${hasReport(item) ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+              className="cursor-pointer border-b hover:bg-muted/50"
             >
               <td className="py-3">{shortDate(item.createdAt)}</td>
               <td className="py-3">{item.role}</td>
@@ -121,7 +121,7 @@ function HistoryList({ items, onDelete }: { items: InterviewListItem[]; onDelete
           <li key={item.id}>
             <Card
               onClick={() => open(item)}
-              className={`flex-row items-start justify-between gap-2 p-4 ${hasReport(item) ? 'cursor-pointer' : ''}`}
+              className="cursor-pointer flex-row items-start justify-between gap-2 p-4"
             >
               <div className="space-y-1">
                 <p className="font-medium">{item.role}</p>

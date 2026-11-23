@@ -1,0 +1,66 @@
+import { TTS_AUDIO } from '@deepdive/shared'
+
+// Plays the interviewer's speech as it streams in: raw PCM chunks (TTS_AUDIO format)
+// are queued back to back with the Web Audio API.
+export class PcmPlayer {
+  private readonly context = new AudioContext()
+  private nextStart = 0 // context time at which the next chunk starts
+  private leftover: Uint8Array | null = null // odd byte from the previous chunk
+  private readonly sources = new Set<AudioBufferSourceNode>()
+
+  // Browsers start audio suspended until a user gesture; call this from a click.
+  unlock(): Promise<void> {
+    return this.context.resume()
+  }
+
+  play(chunk: ArrayBuffer) {
+    let bytes = new Uint8Array(chunk)
+    if (this.leftover) {
+      const joined = new Uint8Array(this.leftover.length + bytes.length)
+      joined.set(this.leftover)
+      joined.set(bytes, this.leftover.length)
+      bytes = joined
+      this.leftover = null
+    }
+    // A sample is 2 bytes; a chunk can end in the middle of one.
+    if (bytes.length % 2 === 1) {
+      this.leftover = bytes.slice(-1)
+      bytes = bytes.subarray(0, -1)
+    }
+    const count = bytes.length / 2
+    if (count === 0) return
+
+    const buffer = this.context.createBuffer(TTS_AUDIO.channels, count, TTS_AUDIO.sampleRate)
+    const samples = buffer.getChannelData(0)
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+    for (let i = 0; i < count; i++) samples[i] = view.getInt16(i * 2, true) / 32768
+
+    const source = this.context.createBufferSource()
+    source.buffer = buffer
+    source.connect(this.context.destination)
+    // A short lead on the first chunk absorbs network jitter between chunks.
+    const start = Math.max(this.nextStart, this.context.currentTime + 0.1)
+    source.start(start)
+    this.nextStart = start + buffer.duration
+    this.sources.add(source)
+    source.onended = () => this.sources.delete(source)
+  }
+
+  // Resolves when everything queued so far has been heard.
+  finished(): Promise<void> {
+    const remaining = Math.max(0, this.nextStart - this.context.currentTime)
+    return new Promise((resolve) => setTimeout(resolve, remaining * 1000))
+  }
+
+  stop() {
+    for (const source of this.sources) source.stop()
+    this.sources.clear()
+    this.nextStart = 0
+    this.leftover = null
+  }
+
+  close() {
+    this.stop()
+    void this.context.close()
+  }
+}
