@@ -38,7 +38,8 @@ export type WsErrorCode =
   | 'INTERNAL'
 
 export type ServerMessage =
-  // Sent on connect (current state) and on every change.
+  // Sent on every change, and on connect once the interview has started
+  // (for a CREATED interview the server waits for 'interview.start').
   | { type: 'state'; state: RoomState }
   // A turn was saved: the interviewer's question, or the candidate's transcribed answer.
   | { type: 'caption'; turn: TurnDto }
@@ -47,5 +48,6 @@ export type ServerMessage =
   | { type: 'audio.end'; turnId: string }
   // Scoring finished; load it with GET /api/interviews/:id/report.
   | { type: 'report.ready'; interviewId: string }
-  // retryable: the client may repeat its last action (e.g. resend the same answer recording).
+  // retryable: the client may repeat its last action. STT_FAILED: resend the same answer recording.
+  // LLM_FAILED: reconnect; on connect the server asks the question it could not write.
   | { type: 'error'; code: WsErrorCode; message: string; retryable: boolean }
