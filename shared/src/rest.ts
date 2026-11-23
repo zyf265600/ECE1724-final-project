@@ -74,6 +74,9 @@ export interface InterviewDetail extends InterviewDto {
 // GET /api/interviews/:id/report -> 200 ReportDto
 // 404 if the interview does not exist; 409 while it is not DONE yet.
 
+// POST /api/interviews/:id/report -> 202, no body ("Score again").
+// Scores a FAILED interview again in the background; 409 for any other status.
+
 // GET /api/turns/:id/audio -> 200 AudioUrlResponse
 // 404 if the turn has no recording.
 export interface AudioUrlResponse {

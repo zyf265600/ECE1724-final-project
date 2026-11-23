@@ -24,7 +24,7 @@ The contract lives in `shared/src/` (`domain.ts`, `rest.ts`, `ws.ts`); the schem
 5. **Prisma 7 uses the `pg` driver adapter** (`server/src/db.ts`). The generated client is not committed; `npm install` runs `prisma generate`.
 6. **Measured (2026-11-15):** TTS first audio 0.5–0.8 s for one question; STT of a 5 s WebM answer 0.6 s, of a 76 s answer (two pieces) 2.9 s, with nothing lost at the cut.
 
-Open question: *Score again* on the report page needs a way to restart scoring; none of the six REST endpoints does this yet. Decide in stage 2.1.
+Open question: *Score again* on the report page needs a way to restart scoring; none of the six REST endpoints does this yet. Decide in stage 2.1. (Decided in C5, decision 5.)
 
 ## C3: one voice round (2026-11-17)
 
@@ -39,6 +39,17 @@ Open question: *Score again* on the report page needs a way to restart scoring; 
 
 1. **The time limit is checked between answers.** After each answer the server compares `startedAt + durationMin` with the clock. If time is up, the interviewer says a fixed closing line instead of a new question, and the interview moves to `SCORING`. An answer already in progress is always heard out; the room shows "Time is up. Finish your answer to end the interview."
 2. **Unfinished interviews can be resumed from Home.** Clicking a `CREATED` or `LIVE` row opens its room; *Resume interview* reconnects and continues (C3 decision 4).
+
+## C5: scoring (2026-11-17)
+
+Code: `server/src/services/scoring.ts`. Review of five reports: [scoring-review.md](scoring-review.md).
+
+1. **One LLM call in JSON mode** returns a summary and, per skill, a score, a comment, a quote and the quote's turn number. The rubric gives each score 1–4 a one-line meaning, so scores are comparable between interviews. Temperature 0.2.
+2. **Validation:** exactly one entry per skill, integer score 1–4, non-empty comment and summary. An invalid reply is asked for once more; after that the interview is `FAILED`.
+3. **Quotes** follow the rule in the next section (the linked turn must be a CANDIDATE turn of this interview that contains the quote). A dropped quote is logged on the server.
+4. **Verdict from the weighted score:** ≥ 3.25 `STRONG_HIRE`, ≥ 2.5 `HIRE`, ≥ 1.75 `NO_HIRE`, otherwise `STRONG_NO_HIRE`. An interview with no answers is not sent to the LLM: every skill gets 1.
+5. **Score again** is a seventh endpoint, `POST /api/interviews/:id/report` (202). It works only on `FAILED` interviews, so a finished report is never replaced. The Proposal promises *Score again* for failures; none of the six endpoints could do it.
+6. **Scoring starts when the interview ends** (in the room, then `report.ready`), and again at server start for interviews still in `SCORING`.
 
 ## Proposal feedback: quotes must match their turn (2026-11-15)
 

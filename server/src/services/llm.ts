@@ -1,4 +1,5 @@
 // Interviewer questions with DeepSeek (OpenAI-compatible chat completions API).
+// Scoring (scoring.ts) uses the same chat() call in JSON mode.
 import type { Difficulty, Speaker } from '@deepdive/shared'
 import { requireEnv } from '../env.ts'
 import { UpstreamError, isRetryableStatus, withRetry } from './retry.ts'
@@ -40,11 +41,17 @@ export async function nextQuestion(role: string, difficulty: Difficulty, transcr
   const lines = transcript.map((t) => `${t.speaker === 'INTERVIEWER' ? 'Interviewer' : 'Candidate'}: ${t.text}`)
   const user = `Transcript so far:\n${lines.join('\n')}\n\nWrite the interviewer's next question.`
 
-  const text = await chat(system, user)
+  const text = await chat(system, user, { maxTokens: 150 })
   return cleanForSpeech(text)
 }
 
-async function chat(system: string, user: string): Promise<string> {
+interface ChatOptions {
+  maxTokens: number
+  json?: boolean // reply is one JSON object (the prompt must mention JSON)
+  timeoutMs?: number
+}
+
+export async function chat(system: string, user: string, options: ChatOptions): Promise<string> {
   const apiKey = requireEnv('DEEPSEEK_API_KEY')
   return withRetry(
     async (signal) => {
@@ -59,8 +66,9 @@ async function chat(system: string, user: string): Promise<string> {
               { role: 'system', content: system },
               { role: 'user', content: user },
             ],
-            temperature: 0.7,
-            max_tokens: 150,
+            temperature: options.json ? 0.2 : 0.7, // scoring should be repeatable
+            max_tokens: options.maxTokens,
+            ...(options.json && { response_format: { type: 'json_object' } }),
           }),
           signal,
         })
@@ -75,7 +83,7 @@ async function chat(system: string, user: string): Promise<string> {
       if (!content) throw new UpstreamError('LLM', 'empty reply', true)
       return content
     },
-    { attempts: 2, timeoutMs: TIMEOUT_MS },
+    { attempts: 2, timeoutMs: options.timeoutMs ?? TIMEOUT_MS },
   )
 }
 

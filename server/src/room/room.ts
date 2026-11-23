@@ -2,7 +2,7 @@
 //
 //   interview.start -> opening question -> speak -> listening
 //   answer recording -> STT -> save turn -> LLM question -> save turn -> speak -> listening
-//   time is up after an answer -> closing line -> ended
+//   time is up after an answer -> closing line -> ended -> scoring -> report.ready
 //
 // Every turn is saved as soon as it exists, so a reconnect continues where the
 // interview stopped (see resume()).
@@ -21,6 +21,7 @@ import { toTurnDto } from '../dto.ts'
 import type { Interview, Turn } from '../generated/prisma/client.ts'
 import { decodeToPcm, isSilent } from '../services/audio.ts'
 import { nextQuestion, openingQuestion } from '../services/llm.ts'
+import { scoreInterview } from '../services/scoring.ts'
 import { audioKey, putAudio, storageConfigured } from '../services/storage.ts'
 import { transcribe } from '../services/stt.ts'
 import { streamSpeech } from '../services/tts.ts'
@@ -89,13 +90,19 @@ export class Room {
     await this.finish()
   }
 
-  // LIVE -> SCORING. Scoring (stage 2.1) picks up interviews in SCORING.
+  // LIVE -> SCORING, then score. The client waits for report.ready on this socket;
+  // if the socket is gone, the report page polls instead.
   private async finish() {
     this.interview = await prisma.interview.update({
       where: { id: this.interview.id },
       data: { status: 'SCORING', endedAt: new Date() },
     })
     this.setState('ended')
+    if (await scoreInterview(this.interview.id)) {
+      this.send({ type: 'report.ready', interviewId: this.interview.id })
+    } else {
+      this.sendError('SCORING_FAILED', 'Scoring failed. Open the report to score again.', false)
+    }
   }
 
   private async onAnswer(recording: Buffer) {
