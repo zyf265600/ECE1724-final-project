@@ -38,13 +38,16 @@ export class Room {
   ) {}
 
   // Called once the socket is open: tells the client where the interview is.
+  // Saved turns are sent as captions too: a turn saved while the client was
+  // disconnected is not in the transcript it loaded (the client ignores duplicates).
   async resume(): Promise<void> {
+    for (const turn of this.turns) this.send({ type: 'caption', turn: toTurnDto(turn) })
     switch (this.interview.status) {
       case 'CREATED':
         return // the client shows "Begin" and sends interview.start
       case 'LIVE': {
         const last = this.turns.at(-1)
-        // The last question was already asked (its caption is in the REST transcript).
+        // The last question was already asked.
         if (last?.speaker === 'INTERVIEWER') return this.setState('listening')
         // Stopped after an answer, or before the first question: go on from there.
         return this.continueAfterAnswer()
@@ -91,13 +94,17 @@ export class Room {
   }
 
   // LIVE -> SCORING, then score. The client waits for report.ready on this socket;
-  // if the socket is gone, the report page polls instead.
+  // if the socket is gone, the report page polls instead. Runs at most once: End can
+  // be clicked while the closing line plays.
   private async finish() {
-    this.interview = await prisma.interview.update({
-      where: { id: this.interview.id },
+    if (this.interview.status !== 'LIVE') return
+    this.interview = { ...this.interview, status: 'SCORING' } // before the await, so work in flight stops
+    this.setState('ended')
+    const { count } = await prisma.interview.updateMany({
+      where: { id: this.interview.id, status: 'LIVE' },
       data: { status: 'SCORING', endedAt: new Date() },
     })
-    this.setState('ended')
+    if (count === 0) return // another room (an older tab) already ended it
     if (await scoreInterview(this.interview.id)) {
       this.send({ type: 'report.ready', interviewId: this.interview.id })
     } else {
@@ -131,10 +138,11 @@ export class Room {
     if (!text) {
       return this.backToListening('STT_FAILED', noSpeech, false)
     }
-    if (this.interview.status !== 'LIVE') return // ended while transcribing
+    if (!this.isLive()) return // ended, or the socket closed, while transcribing
 
     const turnId = randomUUID()
     const key = await this.storeRecording(turnId, recording)
+    if (!this.isLive()) return
     const turn = await this.saveTurn('CANDIDATE', text, key, turnId)
     this.send({ type: 'caption', turn: toTurnDto(turn) })
     await this.continueAfterAnswer()
@@ -142,6 +150,7 @@ export class Room {
 
   // The time limit is checked between answers: a started answer is always heard out.
   private async continueAfterAnswer() {
+    if (!this.isLive()) return
     if (!this.timeIsUp()) return this.askNext()
     this.setState('thinking')
     const turn = await this.saveTurn('INTERVIEWER', CLOSING_LINE, null)
@@ -168,7 +177,7 @@ export class Room {
       // The answer is saved; reconnecting runs askNext again (see resume()).
       return this.sendError('LLM_FAILED', 'The interviewer could not prepare the next question.', true)
     }
-    if (this.interview.status !== 'LIVE') return // ended while thinking
+    if (!this.isLive()) return // ended, or the socket closed, while thinking
 
     const turn = await this.saveTurn('INTERVIEWER', text, null)
     this.send({ type: 'caption', turn: toTurnDto(turn) })
@@ -224,6 +233,7 @@ export class Room {
   }
 
   private setState(state: RoomState) {
+    if (this.state === 'ended') return // nothing in flight may reopen a finished room
     this.state = state
     this.send({ type: 'state', state })
   }
@@ -234,6 +244,13 @@ export class Room {
 
   private send(message: ServerMessage) {
     if (this.isOpen()) this.ws.send(JSON.stringify(message))
+  }
+
+  // Work continues only while the interview runs and this socket is the client's.
+  // After a disconnect the next socket's room takes over (see resume()), so this one
+  // must not save turns that would collide with it.
+  private isLive() {
+    return this.interview.status === 'LIVE' && this.isOpen()
   }
 
   private isOpen() {

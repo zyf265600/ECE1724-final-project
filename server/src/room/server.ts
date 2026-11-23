@@ -16,7 +16,7 @@ const sockets = new Map<string, WebSocket>()
 
 export function attachRooms(server: Server) {
   // A little above the answer limit, so a slightly too long answer gets a clear
-  // AUDIO_TOO_LARGE error instead of the socket closing.
+  // AUDIO_TOO_LARGE error. A frame above maxPayload closes the socket (code 1009).
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_ANSWER_BYTES + 1024 * 1024 })
 
   server.on('upgrade', (req, socket, head) => {
@@ -35,6 +35,9 @@ export function attachRooms(server: Server) {
 }
 
 async function openRoom(ws: WebSocket, id: string) {
+  // Bad frames (too large, invalid UTF-8) are reported as 'error' and then close the
+  // socket; without a listener the error would crash the whole server.
+  ws.on('error', (err) => console.error(`room ${id}: socket error`, err.message))
   // Buffer messages that arrive while the interview loads.
   const early: [Parameters<Room['handle']>[0], boolean][] = []
   const buffer = (data: Parameters<Room['handle']>[0], isBinary: boolean) => early.push([data, isBinary])
@@ -51,6 +54,7 @@ async function openRoom(ws: WebSocket, id: string) {
     return
   }
 
+  if (ws.readyState !== ws.OPEN) return // closed while loading; do not replace a newer socket
   sockets.get(id)?.close(CLOSE_REPLACED, 'Opened in another tab')
   sockets.set(id, ws)
   ws.on('close', () => {
