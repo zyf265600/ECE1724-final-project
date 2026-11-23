@@ -1,12 +1,28 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
-import type { InterviewDetail } from '@deepdive/shared'
+import { Loader2, Mic, MicOff } from 'lucide-react'
+import type { InterviewDetail, TurnDto } from '@deepdive/shared'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { useRecorder } from '@/hooks/useRecorder'
+import { useRoom } from '@/hooks/useRoom'
 import { api, errorMessage } from '@/lib/api'
-import { DIFFICULTY_LABEL, VOICE_LABEL } from '@/lib/labels'
+import { DIFFICULTY_LABEL } from '@/lib/labels'
 
-// Meeting room. For now it loads the saved interview and shows its settings;
-// the live voice loop (WebSocket, recording, playback) is added on top of this page.
+// Meeting room (docs/wireframes.md, section 3): loads the interview, then runs
+// the live voice loop over the WebSocket.
 export function RoomPage() {
   const { id = '' } = useParams()
   const [interview, setInterview] = useState<InterviewDetail | null>(null)
@@ -16,27 +32,245 @@ export function RoomPage() {
     api.getInterview(id).then(setInterview, (err) => setError(errorMessage(err)))
   }, [id])
 
-  if (error) return <NotFound message={error} />
+  if (error) return <Message text={error} />
   if (!interview) return <p className="text-muted-foreground">Loading…</p>
   // A finished interview has nothing left to do here.
   if (interview.status === 'DONE') return <Navigate to={`/interviews/${id}/report`} replace />
+  return <Room interview={interview} />
+}
+
+function Room({ interview }: { interview: InterviewDetail }) {
+  const room = useRoom(interview.id, interview.turns)
+  const mic = useRecorder()
+  const { view } = room
+  const [joined, setJoined] = useState(false)
+  const [joinError, setJoinError] = useState<string | null>(null)
+  const [startedAt, setStartedAt] = useState(interview.startedAt)
+  const lastAnswer = useRef<Blob | null>(null) // kept so a failed transcription can be resent
+  const secondsLeft = useSecondsLeft(startedAt, interview.durationMin)
+
+  const ended = view.state === 'ended' || interview.status === 'SCORING' || interview.status === 'FAILED'
+  const speaking = view.playing || view.state === 'speaking'
+  const canAnswer = joined && view.connection === 'open' && view.state === 'listening' && !view.playing
+
+  // The microphone records only on the candidate's turn, after the question has been heard.
+  const { recording, start: startRecording, stop: stopRecording } = mic
+  useEffect(() => {
+    if (canAnswer && !recording) startRecording()
+    if (!canAnswer && recording) void stopRecording()
+  }, [canAnswer, recording, startRecording, stopRecording])
+
+  // "Begin" (new interview) or "Resume" (after a reload): the click unlocks audio.
+  const join = async () => {
+    setJoinError(null)
+    try {
+      await mic.open()
+    } catch {
+      setJoinError('Microphone blocked. Allow it in the browser settings, then try again.')
+      return
+    }
+    await room.unlockAudio()
+    setJoined(true)
+    if (interview.status === 'CREATED') {
+      room.start()
+      setStartedAt(new Date().toISOString())
+    }
+  }
+
+  const finishAnswer = async () => {
+    const answer = await mic.stop()
+    if (!answer) return
+    lastAnswer.current = answer
+    room.sendAnswer(answer)
+  }
+
+  const retry = async () => {
+    if (view.error?.code === 'STT_FAILED' && lastAnswer.current) {
+      await mic.stop() // drop the new recording; send the saved one again
+      room.sendAnswer(lastAnswer.current)
+    } else {
+      room.reconnect()
+    }
+  }
+
+  if (ended) {
+    return (
+      <Message text="Interview finished. Your answers are saved.">
+        <Captions turns={view.captions} />
+      </Message>
+    )
+  }
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">{interview.role}</h1>
-      <p className="text-muted-foreground">
-        {DIFFICULTY_LABEL[interview.difficulty]} · {interview.durationMin} min · {VOICE_LABEL[interview.voice]}{' '}
-        interviewer
+    // Bottom padding on phones leaves room for the pinned control bar.
+    <div className="space-y-4 pb-28 md:pb-0">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold">
+          {interview.role} · {DIFFICULTY_LABEL[interview.difficulty]}
+        </h1>
+        <span className="font-mono text-sm tabular-nums">
+          {secondsLeft === 0 ? 'Time is up' : `${formatTime(secondsLeft)} left`}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Card className={`h-28 items-center justify-center md:h-40 ${speaking ? 'ring-4 ring-primary/60 animate-pulse' : ''}`}>
+          <span className="font-medium">Interviewer</span>
+        </Card>
+        <Card className="h-28 items-center justify-center gap-1 md:h-40">
+          <span className="font-medium">You</span>
+          <span className="flex items-center gap-1 text-sm text-muted-foreground">
+            {recording ? <Mic className="size-4 text-destructive" /> : <MicOff className="size-4" />}
+            {recording ? 'Recording' : 'Mic off'}
+          </span>
+        </Card>
+      </div>
+
+      <p className="flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+        <StatusLabel
+          joined={joined}
+          speaking={speaking}
+          state={view.state}
+          recording={recording}
+          seconds={mic.seconds}
+          timeUp={secondsLeft === 0}
+        />
       </p>
-      <p>Ready when you are.</p>
+
+      <Captions turns={view.captions} />
+
+      {!joined && (
+        <Card className="items-center gap-3 p-6 text-center">
+          <p>{interview.status === 'CREATED' ? 'Ready when you are.' : 'Your interview is still running.'}</p>
+          <Button size="lg" onClick={join}>
+            {interview.status === 'CREATED' ? 'Begin' : 'Resume interview'}
+          </Button>
+          {joinError && <p className="text-sm text-destructive">{joinError}</p>}
+        </Card>
+      )}
+
+      {/* Pinned to the bottom on phones, inline on larger screens. */}
+      <div className="fixed inset-x-0 bottom-0 space-y-2 border-t bg-background p-4 md:static md:border-0 md:p-0">
+        {view.error && (
+          <Alert variant="destructive">
+            <AlertDescription className="flex items-center justify-between gap-4">
+              {view.error.message}
+              {view.error.retryable ? (
+                <Button variant="outline" size="sm" onClick={retry}>
+                  Retry
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={room.dismissError}>
+                  Dismiss
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+        {joined && (
+          <div className="flex gap-3">
+            <Button size="lg" className="flex-1 md:flex-none" disabled={!recording} onClick={finishAnswer}>
+              Finish answer
+            </Button>
+            <EndButton onEnd={room.end} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
-function NotFound({ message }: { message: string }) {
+function StatusLabel(props: {
+  joined: boolean
+  speaking: boolean
+  state: string | null
+  recording: boolean
+  seconds: number
+  timeUp: boolean
+}) {
+  if (!props.joined) return null
+  if (props.speaking) return <>Interviewer is speaking</>
+  if (props.state === 'thinking' || props.state === null) {
+    return (
+      <>
+        <Loader2 className="size-4 animate-spin" /> Thinking…
+      </>
+    )
+  }
+  // The server closes the interview after this answer.
+  if (props.recording && props.timeUp) return <>Time is up. Finish your answer to end the interview.</>
+  if (props.recording) return <>Your turn · {formatTime(props.seconds)} recording</>
+  return <>Your turn</>
+}
+
+function Captions({ turns }: { turns: TurnDto[] }) {
+  const box = useRef<HTMLDivElement>(null)
+  // Keep the newest caption in view.
+  useEffect(() => {
+    box.current?.scrollTo({ top: box.current.scrollHeight, behavior: 'smooth' })
+  }, [turns.length])
+
+  return (
+    <Card className="gap-0 p-0">
+      <p className="border-b px-4 py-2 text-sm font-medium">Captions</p>
+      <div ref={box} className="h-64 space-y-3 overflow-y-auto px-4 py-3 md:h-72">
+        {turns.length === 0 && <p className="text-sm text-muted-foreground">Captions appear here.</p>}
+        {turns.map((turn) => (
+          <div key={turn.id}>
+            <p className="text-xs font-medium text-muted-foreground">
+              {turn.speaker === 'INTERVIEWER' ? 'Interviewer' : 'You'}
+            </p>
+            <p>{turn.text}</p>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
+function EndButton({ onEnd }: { onEnd: () => void }) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button size="lg" variant="outline">
+          End interview
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>End now?</AlertDialogTitle>
+          <AlertDialogDescription>Your answers so far are saved. The answer you are giving now is not.</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Keep going</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={onEnd}>
+            End interview
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+// Seconds left, counted from when the interview went live; updated every second.
+function useSecondsLeft(startedAt: string | null, minutes: number): number {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+  const total = minutes * 60
+  return startedAt ? Math.max(0, total - Math.floor((now - Date.parse(startedAt)) / 1000)) : total
+}
+
+const formatTime = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+
+function Message({ text, children }: { text: string; children?: ReactNode }) {
   return (
     <div className="space-y-4">
-      <p>{message}</p>
+      <p>{text}</p>
+      {children}
       <Button asChild variant="outline">
         <Link to="/">Back to home</Link>
       </Button>
