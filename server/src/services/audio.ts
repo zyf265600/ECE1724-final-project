@@ -38,6 +38,16 @@ export function splitPcm(pcm: Buffer, seconds: number): Buffer[] {
   return pieces
 }
 
+// True when no sample is louder than about -40 dBFS: nothing was said. Higgs STT
+// invents a sentence for silent audio, so silence must not reach it.
+export function isSilent(pcm: Buffer): boolean {
+  const threshold = 0.01 * 32768
+  for (let i = 0; i + 1 < pcm.length; i += 2) {
+    if (Math.abs(pcm.readInt16LE(i)) > threshold) return false
+  }
+  return true
+}
+
 export function pcmDurationSeconds(pcm: Buffer): number {
   return pcm.length / PCM_BYTES_PER_SECOND
 }

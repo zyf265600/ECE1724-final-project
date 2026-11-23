@@ -23,6 +23,12 @@ function s3(): S3Client {
 
 const bucket = () => requireEnv('S3_BUCKET')
 
+// Until S3 is set up in server/.env, answers are transcribed and saved without their
+// recording (the turn has no audioKey, so "Play my answer" is not offered).
+export function storageConfigured(): boolean {
+  return Boolean(process.env.S3_BUCKET && process.env.AWS_REGION)
+}
+
 export function audioKey(interviewId: string, turnId: string): string {
   return `interviews/${interviewId}/turns/${turnId}.webm`
 }
