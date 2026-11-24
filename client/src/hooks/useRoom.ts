@@ -61,6 +61,7 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
   })
   const socket = useRef<WebSocket | null>(null)
   const player = useRef<PcmPlayer | null>(null)
+  const muted = useRef(false) // set by End interview: no more interviewer audio
 
   const connect = useCallback(() => {
     socket.current?.close()
@@ -80,7 +81,7 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
     }
     ws.onmessage = (event) => {
       if (event.data instanceof ArrayBuffer) {
-        player.current?.play(event.data)
+        if (!muted.current) player.current?.play(event.data)
         return
       }
       const message = JSON.parse(event.data as string) as ServerMessage
@@ -128,7 +129,14 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
     // Call from a click: browsers only allow audio after a user gesture.
     unlockAudio: () => player.current?.unlock(),
     start: () => send({ type: 'interview.start' }),
-    end: () => send({ type: 'interview.end' }),
+    // Ending cuts the interviewer off: queued audio stops and later chunks are dropped.
+    end: () => {
+      if (socket.current?.readyState !== WebSocket.OPEN) return
+      send({ type: 'interview.end' })
+      muted.current = true
+      player.current?.stop()
+      dispatch({ type: 'playing', playing: false })
+    },
     sendAnswer: (recording: Blob) => {
       dispatch({ type: 'error', error: null })
       dispatch({ type: 'state', state: 'thinking' }) // the server confirms; avoids recording again meanwhile

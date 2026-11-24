@@ -194,7 +194,8 @@ export class Room {
     try {
       const stream = await streamSpeech(turn.text, this.interview.voice)
       for await (const chunk of stream) {
-        if (!this.isOpen()) break
+        // Stop streaming once the candidate ends the interview (the closing line is spoken while still LIVE).
+        if (!this.isLive()) break
         this.ws.send(chunk)
       }
     } catch (err) {

@@ -64,6 +64,7 @@ Code: `server/src/services/scoring.ts`. Review of five reports: [scoring-review.
    - On connect the server resends every saved turn as a caption, so a question saved during a disconnect still appears. A `CREATED` interview gets no `state` on connect (changes C1 decision 3).
    - Quotes must match whole words ("ache" no longer matches inside "cache").
 6. **Browsers:** Chrome and Edge. Safari cannot record WebM; its MP4 answer is transcribed correctly but stored under a `.webm` key, so playback may fail there.
+7. ***End interview* silences the interviewer at once.** The client stops the queued audio and drops any chunk that still arrives; the server stops streaming speech once the interview is no longer `LIVE`. The closing line after the time limit still plays to the end, because the interview is `LIVE` until it finishes.
 
 ## Proposal feedback: quotes must match their turn (2026-11-15)
 
