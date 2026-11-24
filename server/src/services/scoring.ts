@@ -28,11 +28,12 @@ PERSONAL_CONTRIBUTION: what they did themselves.
 CLARITY: how easy the answers are to follow.
   1 = hard to follow; 2 = understandable with effort; 3 = clear and structured; 4 = clear, concise and well structured.`
 
-// Verdict from the weighted score (1-4). Computed here, never by the LLM.
+// Verdict from the weighted score (1-4, one decimal, as shown on the report).
+// Computed here, never by the LLM.
 const VERDICTS: [min: number, verdict: Verdict][] = [
-  [3.25, 'STRONG_HIRE'],
+  [3.3, 'STRONG_HIRE'],
   [2.5, 'HIRE'],
-  [1.75, 'NO_HIRE'],
+  [1.8, 'NO_HIRE'],
   [MIN_SKILL_SCORE, 'STRONG_NO_HIRE'],
 ]
 
@@ -204,17 +205,18 @@ function applyChecks(sheet: { summary: string; entries: SheetEntry[] }, turns: T
 }
 
 // The quote is kept only if the linked turn is a CANDIDATE turn of this interview whose
-// text contains it (after normalizing). It is never moved to a different turn.
+// text contains it as whole words (after normalizing). It is never moved to a different turn.
 export function checkQuote(quote: string | null, turnIndex: number | null, turns: Turn[]): Turn | null {
   if (!quote || turnIndex === null) return null
   const turn = turns.find((t) => t.index === turnIndex)
   if (!turn || turn.speaker !== 'CANDIDATE') return null
   const needle = normalize(quote)
-  return needle && normalize(turn.text).includes(needle) ? turn : null
+  // Spaces on both sides: "ache" must not match inside "cache".
+  return needle && ` ${normalize(turn.text)} `.includes(` ${needle} `) ? turn : null
 }
 
 // Lower case, straight quotes, no punctuation, single spaces.
-function normalize(text: string): string {
+export function normalize(text: string): string {
   return text
     .toLowerCase()
     .replace(/[‘’]/g, "'")
@@ -224,9 +226,11 @@ function normalize(text: string): string {
     .trim()
 }
 
+// Rounded to one decimal, the precision the report shows, so the verdict never
+// disagrees with the number next to it.
 export function weightedScore(scores: { skill: Skill; score: number }[]): number {
   const total = scores.reduce((sum, s) => sum + s.score * SKILL_WEIGHTS[s.skill], 0)
-  return Math.round(total * 100) / 100
+  return Math.round(total * 10) / 10
 }
 
 export function verdictFor(overallScore: number): Verdict {
