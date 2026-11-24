@@ -36,6 +36,7 @@ Other commands:
 - `npm run tts -w server -- "Some question?"`: speak a sentence with Higgs TTS, save it as a WAV file, and print the time to first audio
 - `npm run stt -w server -- answer.webm`: transcribe an audio file with Higgs STT
 - `npm run s3:check -w server`: upload, download and delete a test object in the S3 bucket
+- `npm run score:review -w server`: score five sample transcripts and print every quote with the turn it links to
 
 The REST API is documented in [docs/api.md](docs/api.md). Manual checks before each merge: [docs/testing.md](docs/testing.md).
 
