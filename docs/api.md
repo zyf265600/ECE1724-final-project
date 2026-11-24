@@ -15,7 +15,7 @@ Every 4xx/5xx response has the same body (`ApiError`):
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | Body is not valid JSON, or a field is missing or not allowed |
 | 404 | `NOT_FOUND` | Unknown interview, turn, recording or route |
-| 409 | `CONFLICT` | Report requested before scoring is done |
+| 409 | `CONFLICT` | Report requested before scoring is done, or *Score again* on an interview that did not fail |
 | 500 | `INTERNAL` | Anything else (details are logged on the server only) |
 
 ## Endpoints
@@ -26,6 +26,7 @@ Every 4xx/5xx response has the same body (`ApiError`):
 | `GET /api/interviews` | 200 `InterviewListItem[]` | |
 | `GET /api/interviews/:id` | 200 `InterviewDetail` | 404 |
 | `GET /api/interviews/:id/report` | 200 `ReportDto` | 404, 409 |
+| `POST /api/interviews/:id/report` | 202, no body | 404, 409 |
 | `GET /api/turns/:id/audio` | 200 `AudioUrlResponse` | 404 |
 | `DELETE /api/interviews/:id` | 204, no body | 404 |
 
@@ -75,6 +76,12 @@ One interview with its `turns` in speaking order (`index` 0, 1, 2, …). A turn 
 
 The scored report: `overallScore` (1–4), `verdict`, `summary`, and five `scores` in rubric order (technical depth, trade-offs, results and validation, personal contribution, clarity).
 Returns 409 while the interview is not `DONE`, so the report page can poll it.
+
+### POST /api/interviews/:id/report
+
+*Score again* for an interview whose scoring failed (`status: FAILED`). The server sets the status back to `SCORING` and scores the transcript again in the background; the report page then polls `GET /api/interviews/:id/report`. Returns 409 for any other status, so a finished report is never replaced.
+
+Scoring normally starts by itself when the interview ends, and again after a server restart for interviews still in `SCORING`.
 
 ### GET /api/turns/:id/audio
 
