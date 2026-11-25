@@ -24,7 +24,7 @@ export const SKILL_LABEL: Record<Skill, string> = {
 export const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
-// The history "Result" column (docs/wireframes.md, Home).
+// The "Result" column of past interviews (setup page).
 export function resultLabel(item: InterviewListItem): string {
   switch (item.status) {
     case 'DONE':
