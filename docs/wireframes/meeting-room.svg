@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1120" height="534" viewBox="0 0 1120 534" role="img" aria-labelledby="title description">
-<title id="title">Meeting Room wireframes</title><desc id="description">Candidate turn with an idle interviewer ring, active microphone, countdown, and live captions. The phone layout stacks the tiles above the pinned controls.</desc>
+<title id="title">Meeting Room wireframes</title><desc id="description">Candidate turn with an active microphone, countdown, and live captions. The phone layout stacks the tiles above the pinned controls.</desc>
 <g font-family="Arial, Helvetica, sans-serif">
 <rect x="0" y="0" width="1120" height="534" rx="12" fill="#edf1f6" stroke="none"/>
 <text x="24" y="32" fill="#4d5c71" font-size="14" font-weight="650" text-anchor="start">DESKTOP</text>
