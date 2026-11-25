@@ -1,39 +1,83 @@
 # C5: scoring review
 
 Five sample interviews scored with the real LLM (DeepSeek), checked by hand for fairness and for quotes.
-Reproduce with `npm run score:review -w server` (transcripts in `server/scripts/score-review.ts`; the five reports stay in the database and open in the app).
+Reproduce with `npm run score:review -w server` (transcripts in `server/scripts/score-review.ts`). The sample labels below ("strong", "vague", …) are printed by the script only; the LLM sees just the role and the transcript. The five reports stay in the database and open in the app.
 
 ## Reports
 
 | # | Sample | Overall | Verdict | Fair? |
 |---|---|---|---|---|
-| 1 | Strong: vector search, numbers, baseline, own work | 3.85 | STRONG_HIRE | Yes. Personal contribution 3, not 4: decisions are stated but their effect is not. |
+| 1 | Strong: vector search, numbers, baseline, own work | 3.9 | STRONG_HIRE | Yes. Personal contribution 3, not 4: decisions are stated but their effect is not. |
 | 2 | Vague: "we", "it felt fast" | 1.5 | STRONG_NO_HIRE | Yes. Results 2 matches the rubric ("vague claims"). |
-| 3 | Deep, but no evaluation | 2.6 | HIRE | Yes. Depth and trade-offs 3, results 1 (no evaluation was set up). |
-| 4 | The interviewer states the result, the candidate only agrees | 2.1 | NO_HIRE | Yes. Results 1: the comment says the figure came from the interviewer. |
-| 5 | One short answer | 1.3 | STRONG_NO_HIRE | Yes. |
+| 3 | Deep, but no evaluation | 2.8 | HIRE | Yes. Depth and trade-offs 3, results 2 ("it worked better, I think"). |
+| 4 | The interviewer states the result, the candidate only agrees | 2.3 | NO_HIRE | Yes. The summary asks for "results you measured yourself rather than confirming the interviewer's numbers". |
+| 5 | One short answer | 1.5 | STRONG_NO_HIRE | Mostly. Personal contribution 3 for "I made a to-do list app" is generous: the rubric's 3 asks for a clear own part, and the sentence is clear but says nothing more. |
 
-The first run (2026-11-17) found two problems, fixed in the scoring prompt before the run above:
+An earlier run (2026-11-17) found two problems, fixed in the scoring prompt before the run above:
 - Sample 4: the summary praised "a concrete improvement in runtime", which only the interviewer had said. New rule: credit only what the candidate said, also in the summary.
 - Sample 5: clarity 3 for a single sentence. New rule: one or two short sentences give clarity at most 2.
 
-## Quotes
+That earlier run also put the sample label into the role ("Review 2 (vague) …"), so the LLM saw the expected result. The run above uses the plain role.
 
-For every score: the quote, the turn it links to, that turn's speaker, and whether the quote is in that turn's text.
+## Quotes, per score
 
-| # | Quotes kept | Linked turn is CANDIDATE | Quote is in the linked turn | Dropped by the server |
-|---|---|---|---|---|
-| 1 | 5 / 5 | 5 | 5 | 0 |
-| 2 | 5 / 5 | 5 | 5 | 0 |
-| 3 | 5 / 5 | 5 | 5 | 0 |
-| 4 | 5 / 5 | 5 | 5 | 0 |
-| 5 | 5 / 5 | 5 | 5 | 0 |
+"In that turn" is checked by the review script on its own (case-insensitive text match, then a match ignoring punctuation), not with the server's check. Recordings need S3, which is not set up yet, so *Play my answer* could not be compared with the quotes.
 
-- In sample 4 the tempting quote ("cut the nightly run from six hours to forty minutes") is the interviewer's; the LLM did not use it.
-- In sample 5 the same sentence supports all five scores, because it is the only answer.
-- *Play my answer* plays the same words: not checked yet. Recordings need S3, which is not set up; the samples are text only.
+### Sample 1: strong, Backend engineer intern
 
-The server-side check (`checkQuote` in `server/src/services/scoring.ts`) was also tested with quotes the LLM did not produce:
+| Skill | Score | Quote | Turn | Speaker | In that turn |
+|---|---|---|---|---|---|
+| TECHNICAL_DEPTH | 4 | I designed and wrote a vector search service in Go that stores product embeddings in an HNSW index, and I owned it from design to rollout. | 1 | CANDIDATE | yes |
+| TRADE_OFFS | 4 | IVF needed about a third of the memory, but to reach 95 percent recall it had to probe so many lists that p95 latency went over 40 milliseconds. | 3 | CANDIDATE | yes |
+| RESULTS_VALIDATION | 4 | I computed exact nearest neighbors with brute force on a sample of 5,000 real queries and counted how many of the top ten results HNSW returned. | 5 | CANDIDATE | yes |
+| PERSONAL_CONTRIBUTION | 3 | I designed and wrote a vector search service in Go that stores product embeddings in an HNSW index, and I owned it from design to rollout. | 1 | CANDIDATE | yes |
+| CLARITY | 4 | The baseline for latency was the old SQL search, measured with the same replayed query log. | 5 | CANDIDATE | yes |
+
+### Sample 2: vague, Frontend developer intern
+
+| Skill | Score | Quote | Turn | Speaker | In that turn |
+|---|---|---|---|---|---|
+| TECHNICAL_DEPTH | 1 | We made a web app for our club. It was in React. It worked pretty well and people liked it. | 1 | CANDIDATE | yes |
+| TRADE_OFFS | 1 | We used a lot of libraries and it was fast. | 3 | CANDIDATE | yes |
+| RESULTS_VALIDATION | 2 | It just felt fast when we used it. Nobody complained. | 5 | CANDIDATE | yes |
+| PERSONAL_CONTRIBUTION | 2 | We all worked on everything together, so it is hard to say. | 3 | CANDIDATE | yes |
+| CLARITY | 2 | We all worked on everything together, so it is hard to say. We used a lot of libraries and it was fast. | 3 | CANDIDATE | yes |
+
+### Sample 3: deep but no results, Machine learning intern
+
+| Skill | Score | Quote | Turn | Speaker | In that turn |
+|---|---|---|---|---|---|
+| TECHNICAL_DEPTH | 3 | used LoRA adapters on the attention layers so only about one percent of the weights were trained, and handled class imbalance with a weighted loss | 1 | CANDIDATE | yes |
+| TRADE_OFFS | 3 | Full fine-tuning did not fit on our single 24 gigabyte GPU, and LoRA let us keep one base model and swap adapters per customer. | 3 | CANDIDATE | yes |
+| RESULTS_VALIDATION | 2 | It worked better than before, I think. We did not really set up a proper evaluation before I left, but the team said the routing looked good. | 5 | CANDIDATE | yes |
+| PERSONAL_CONTRIBUTION | 3 | I wrote the training loop in PyTorch, used LoRA adapters on the attention layers | 1 | CANDIDATE | yes |
+| CLARITY | 3 | I fine-tuned a small language model to classify support tickets into twelve categories. | 1 | CANDIDATE | yes |
+
+### Sample 4: interviewer states the result, Data engineer intern
+
+| Skill | Score | Quote | Turn | Speaker | In that turn |
+|---|---|---|---|---|---|
+| TECHNICAL_DEPTH | 2 | I worked on a nightly data pipeline that loads sales data into the warehouse. I rewrote the slowest step to use Spark instead of a single Python script. | 1 | CANDIDATE | yes |
+| TRADE_OFFS | 2 | I rewrote the slowest step to use Spark instead of a single Python script. | 1 | CANDIDATE | yes |
+| RESULTS_VALIDATION | 2 | Yes, that is right, it was much quicker after that. | 3 | CANDIDATE | yes |
+| PERSONAL_CONTRIBUTION | 3 | I wrote the join and the deduplication step and tested them on one week of data. | 5 | CANDIDATE | yes |
+| CLARITY | 3 | I wrote the join and the deduplication step and tested them on one week of data. | 5 | CANDIDATE | yes |
+
+### Sample 5: one short answer, Software engineer intern
+
+| Skill | Score | Quote | Turn | Speaker | In that turn |
+|---|---|---|---|---|---|
+| TECHNICAL_DEPTH | 1 | I made a to-do list app for a course project. | 1 | CANDIDATE | yes |
+| TRADE_OFFS | 1 | I made a to-do list app for a course project. | 1 | CANDIDATE | yes |
+| RESULTS_VALIDATION | 1 | I made a to-do list app for a course project. | 1 | CANDIDATE | yes |
+| PERSONAL_CONTRIBUTION | 3 | I made a to-do list app for a course project. | 1 | CANDIDATE | yes |
+| CLARITY | 2 | I made a to-do list app for a course project. | 1 | CANDIDATE | yes |
+
+Result: 25 of 25 quotes kept; each links to a CANDIDATE turn of its own interview and appears in that turn's text. The server dropped none. In sample 4 the LLM did not quote the interviewer's numbers.
+
+## The server's quote check
+
+`checkQuote` in `server/src/services/scoring.ts`, tested with quotes the LLM did not produce:
 
 | Case | Result |
 |---|---|
@@ -43,3 +87,5 @@ The server-side check (`checkQuote` in `server/src/services/scoring.ts`) was als
 | Candidate's words with different punctuation and curly quotes | kept |
 | Turn number not in this interview | dropped |
 | No turn number | dropped |
+| Part of a word ("ache" inside "cache") | dropped |
+| Whole words in the right turn | kept |
