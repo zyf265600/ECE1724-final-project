@@ -1,5 +1,5 @@
 // Display text for values from shared/src/domain.ts.
-import type { Difficulty, InterviewListItem, Verdict, Voice } from '@deepdive/shared'
+import type { Difficulty, InterviewListItem, Skill, Verdict, Voice } from '@deepdive/shared'
 
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = { EASY: 'Easy', MEDIUM: 'Medium', HARD: 'Hard' }
 
@@ -10,6 +10,14 @@ export const VERDICT_LABEL: Record<Verdict, string> = {
   HIRE: 'Hire',
   NO_HIRE: 'No hire',
   STRONG_NO_HIRE: 'Strong no hire',
+}
+
+export const SKILL_LABEL: Record<Skill, string> = {
+  TECHNICAL_DEPTH: 'Technical depth',
+  TRADE_OFFS: 'Trade-offs',
+  RESULTS_VALIDATION: 'Results and validation',
+  PERSONAL_CONTRIBUTION: 'Personal contribution',
+  CLARITY: 'Clarity',
 }
 
 // "Nov 15"
