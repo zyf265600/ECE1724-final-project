@@ -48,16 +48,16 @@ What each `RoomState` looks like:
 | before start (`CREATED`) | "Ready when you are" + big **Begin** button | off | off | hidden |
 | `speaking` | "Interviewer is speaking" | pulsing | off | disabled |
 | `thinking` | "Thinking…" (spinner) | off | off | disabled |
-| `listening` | "Your turn" + recording time | off | **on** (level bar) | enabled |
+| `listening` | "Your turn" + recording time | off | **on** (red mic icon) | enabled |
 | `ended` | "Interview finished. Scoring your answers…" | off | off | hidden |
 
 - **Begin** sends `interview.start`. The click also unlocks browser audio, so interviewer speech can play.
 - **Captions** append every `caption` message (both speakers), in `turn.index` order.
 - **Timer** counts down from `startedAt + durationMin`.
-- **End interview** asks "End now? Your answers so far will be scored." then sends `interview.end`.
-- **`report.ready`** → navigate to the report page. If the socket closes during `ended`, the page polls `GET /api/interviews/:id` and navigates when `status` is `DONE`.
-- **Errors** show a banner above the control bar with `message`; if `retryable`, a **Retry** button resends the same recording.
-- Opening the room of a `DONE` interview redirects to its report.
+- **End interview** asks "End now? Your answers so far will be scored. The answer you are giving now is not included." then sends `interview.end`.
+- **After `ended`**, once the closing words have played: `report.ready`, `SCORING_FAILED` or a closed socket → navigate to the report page, which polls while scoring.
+- **Errors** show a banner above the control bar with `message`; if `retryable`, a **Retry** button resends the same recording (`STT_FAILED`) or reconnects (`LLM_FAILED`, lost connection).
+- Opening the room of a `SCORING`, `FAILED` or `DONE` interview redirects to its report.
 
 ## 4. Report
 
@@ -67,8 +67,8 @@ Verdict first, then evidence per skill.
 
 Phone: same order in one column; **Download Markdown** moves to the bottom.
 
-- **Play my answer** appears only when `turnId` is set; it calls `GET /api/turns/:id/audio` and plays the URL in an `<audio>` element.
+- **Play my answer** appears only when `turnId` is set and that turn has a recording (`hasAudio`); it calls `GET /api/turns/:id/audio` and plays the URL in an `<audio>` element.
 - **Download Markdown** builds the file in the browser from the loaded report (no extra endpoint).
 - **While scoring** (`409`): "Scoring your answers…" with a spinner; poll every 3 s.
-- **Failed** (`status: FAILED`): "Scoring failed." + **Score again** (endpoint still open; see `docs/design.md`).
+- **Failed** (`status: FAILED`): "Scoring failed." + **Score again**, which calls `POST /api/interviews/:id/report` and then polls.
 - **Not found** (`404`): "Interview not found." + link to Home.

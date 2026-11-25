@@ -24,6 +24,7 @@ export interface RoomView {
   captions: TurnDto[] // both speakers, in index order
   playing: boolean // interviewer audio is still audible
   error: RoomError | null
+  reportReady: boolean
 }
 
 type Action =
@@ -32,11 +33,16 @@ type Action =
   | { type: 'caption'; turn: TurnDto }
   | { type: 'playing'; playing: boolean }
   | { type: 'error'; error: RoomError | null }
+  | { type: 'reportReady' }
 
 function reducer(view: RoomView, action: Action): RoomView {
   switch (action.type) {
     case 'connection':
-      return { ...view, connection: action.connection }
+      // A new connection starts without a room state: the server sends the current one
+      // (none for an interview that has not started, so the page offers Begin again).
+      return action.connection === 'connecting'
+        ? { ...view, connection: action.connection, state: null }
+        : { ...view, connection: action.connection }
     case 'state':
       return { ...view, state: action.state }
     case 'caption':
@@ -46,6 +52,8 @@ function reducer(view: RoomView, action: Action): RoomView {
       return { ...view, playing: action.playing }
     case 'error':
       return { ...view, error: action.error }
+    case 'reportReady':
+      return { ...view, reportReady: true }
   }
 }
 
@@ -58,6 +66,7 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
     captions: savedTurns,
     playing: false,
     error: null,
+    reportReady: false,
   })
   const socket = useRef<WebSocket | null>(null)
   const player = useRef<PcmPlayer | null>(null)
@@ -103,7 +112,8 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
           dispatch({ type: 'error', error: message })
           break
         case 'report.ready':
-          break // the report page arrives in stage 2.2
+          dispatch({ type: 'reportReady' })
+          break
       }
     }
   }, [interviewId])
@@ -119,28 +129,32 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
     }
   }, [connect])
 
+  // Returns false when the socket is not open and nothing was sent.
   const send = useCallback((message: ClientMessage | Blob) => {
     const ws = socket.current
-    if (ws?.readyState === WebSocket.OPEN) ws.send(message instanceof Blob ? message : JSON.stringify(message))
+    if (ws?.readyState !== WebSocket.OPEN) return false
+    ws.send(message instanceof Blob ? message : JSON.stringify(message))
+    return true
   }, [])
 
   return {
     view,
     // Call from a click: browsers only allow audio after a user gesture.
     unlockAudio: () => player.current?.unlock(),
-    start: () => send({ type: 'interview.start' }),
+    start: () => {
+      if (send({ type: 'interview.start' })) dispatch({ type: 'state', state: 'thinking' })
+    },
     // Ending cuts the interviewer off: queued audio stops and later chunks are dropped.
     end: () => {
-      if (socket.current?.readyState !== WebSocket.OPEN) return
-      send({ type: 'interview.end' })
+      if (!send({ type: 'interview.end' })) return
       muted.current = true
       player.current?.stop()
       dispatch({ type: 'playing', playing: false })
     },
     sendAnswer: (recording: Blob) => {
       dispatch({ type: 'error', error: null })
-      dispatch({ type: 'state', state: 'thinking' }) // the server confirms; avoids recording again meanwhile
-      send(recording)
+      // The server confirms; avoids recording again meanwhile.
+      if (send(recording)) dispatch({ type: 'state', state: 'thinking' })
     },
     reconnect: () => {
       dispatch({ type: 'error', error: null })

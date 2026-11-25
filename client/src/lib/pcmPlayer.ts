@@ -46,10 +46,12 @@ export class PcmPlayer {
     source.onended = () => this.sources.delete(source)
   }
 
-  // Resolves when everything queued so far has been heard.
+  // Resolves when everything queued so far has been heard. Waits for the last chunk's
+  // 'ended' event rather than the clock, because a suspended context plays nothing.
   finished(): Promise<void> {
-    const remaining = Math.max(0, this.nextStart - this.context.currentTime)
-    return new Promise((resolve) => setTimeout(resolve, remaining * 1000))
+    const last = [...this.sources].at(-1)
+    if (!last) return Promise.resolve()
+    return new Promise((resolve) => last.addEventListener('ended', () => resolve(), { once: true }))
   }
 
   stop() {

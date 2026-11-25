@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Link, Navigate, useParams } from 'react-router'
+import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import { Loader2, Mic, MicOff } from 'lucide-react'
 import type { InterviewDetail, TurnDto } from '@deepdive/shared'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -34,8 +34,10 @@ export function RoomPage() {
 
   if (error) return <Message text={error} />
   if (!interview) return <p className="text-muted-foreground">Loading…</p>
-  // A finished interview has nothing left to do here.
-  if (interview.status === 'DONE') return <Navigate to={`/interviews/${id}/report`} replace />
+  // A finished interview has nothing left to do here; its report page shows scoring progress.
+  if (interview.status !== 'CREATED' && interview.status !== 'LIVE') {
+    return <Navigate to={`/interviews/${id}/report`} replace />
+  }
   return <Room interview={interview} />
 }
 
@@ -44,16 +46,25 @@ function Room({ interview }: { interview: InterviewDetail }) {
   const mic = useRecorder()
   const { view } = room
   const [joined, setJoined] = useState(false)
+  const [joining, setJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
   const [startedAt, setStartedAt] = useState(interview.startedAt)
   const lastAnswer = useRef<Blob | null>(null) // kept so a failed transcription can be resent
   const secondsLeft = useSecondsLeft(startedAt, interview.durationMin)
 
-  const ended = view.state === 'ended' || interview.status === 'SCORING' || interview.status === 'FAILED'
+  const navigate = useNavigate()
+  const ended = view.state === 'ended'
   const speaking = view.playing || view.state === 'speaking'
   const canAnswer = joined && view.connection === 'open' && view.state === 'listening' && !view.playing
 
   // The microphone records only on the candidate's turn, after the question has been heard.
+  // After the interview: open the report once the closing words have played and scoring
+  // has finished, failed, or can no longer be followed on this socket (the report page polls).
+  const scoringOver = view.reportReady || view.error?.code === 'SCORING_FAILED' || view.connection === 'closed'
+  useEffect(() => {
+    if (ended && !view.playing && scoringOver) navigate(`/interviews/${interview.id}/report`, { replace: true })
+  }, [ended, view.playing, scoringOver, navigate, interview.id])
+
   const { recording, start: startRecording, stop: stopRecording } = mic
   useEffect(() => {
     if (canAnswer && !recording) startRecording()
@@ -63,17 +74,19 @@ function Room({ interview }: { interview: InterviewDetail }) {
   // "Begin" (new interview) or "Resume" (after a reload): the click unlocks audio.
   const join = async () => {
     setJoinError(null)
+    setJoining(true) // a second click while the microphone prompt is open does nothing
     try {
       await mic.open()
+      await room.unlockAudio()
+      setJoined(true)
+      if (interview.status === 'CREATED') {
+        room.start()
+        setStartedAt((s) => s ?? new Date().toISOString())
+      }
     } catch {
       setJoinError('Microphone blocked. Allow it in the browser settings, then try again.')
-      return
-    }
-    await room.unlockAudio()
-    setJoined(true)
-    if (interview.status === 'CREATED') {
-      room.start()
-      setStartedAt(new Date().toISOString())
+    } finally {
+      setJoining(false)
     }
   }
 
@@ -95,9 +108,12 @@ function Room({ interview }: { interview: InterviewDetail }) {
 
   if (ended) {
     return (
-      <Message text="Interview finished. Your answers are saved.">
+      <div className="space-y-4">
+        <p className="flex items-center gap-2">
+          <Loader2 className="size-4 animate-spin" /> Interview finished. Scoring your answers…
+        </p>
         <Captions turns={view.captions} />
-      </Message>
+      </div>
     )
   }
 
@@ -139,10 +155,11 @@ function Room({ interview }: { interview: InterviewDetail }) {
 
       <Captions turns={view.captions} />
 
-      {!joined && (
+      {/* Also shown again if a reconnect finds the interview not started yet. */}
+      {(!joined || view.state === null) && (
         <Card className="items-center gap-3 p-6 text-center">
           <p>{interview.status === 'CREATED' ? 'Ready when you are.' : 'Your interview is still running.'}</p>
-          <Button size="lg" onClick={join}>
+          <Button size="lg" onClick={join} disabled={joining || view.connection !== 'open'}>
             {interview.status === 'CREATED' ? 'Begin' : 'Resume interview'}
           </Button>
           {joinError && <p className="text-sm text-destructive">{joinError}</p>}
@@ -239,7 +256,9 @@ function EndButton({ onEnd }: { onEnd: () => void }) {
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>End now?</AlertDialogTitle>
-          <AlertDialogDescription>Your answers so far are saved. The answer you are giving now is not.</AlertDialogDescription>
+          <AlertDialogDescription>
+            Your answers so far will be scored. The answer you are giving now is not included.
+          </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Keep going</AlertDialogCancel>

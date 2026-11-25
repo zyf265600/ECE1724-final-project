@@ -12,6 +12,7 @@ const C = 'CANDIDATE'
 const OPENING = 'Hi, thanks for joining. To start, tell me about one project you worked on: what problem it solved, and what you built yourself.'
 
 interface Sample {
+  label: string // printed only; never sent to the LLM
   role: string
   difficulty: Difficulty
   turns: [Speaker, string][]
@@ -19,7 +20,8 @@ interface Sample {
 
 const SAMPLES: Sample[] = [
   {
-    role: 'Review 1 (strong) Backend engineer intern',
+    label: 'Sample 1: strong',
+    role: 'Backend engineer intern',
     difficulty: 'HARD',
     turns: [
       [I, OPENING],
@@ -31,7 +33,8 @@ const SAMPLES: Sample[] = [
     ],
   },
   {
-    role: 'Review 2 (vague) Frontend developer intern',
+    label: 'Sample 2: vague',
+    role: 'Frontend developer intern',
     difficulty: 'MEDIUM',
     turns: [
       [I, OPENING],
@@ -43,7 +46,8 @@ const SAMPLES: Sample[] = [
     ],
   },
   {
-    role: 'Review 3 (deep but no results) Machine learning intern',
+    label: 'Sample 3: deep but no results',
+    role: 'Machine learning intern',
     difficulty: 'MEDIUM',
     turns: [
       [I, OPENING],
@@ -57,7 +61,8 @@ const SAMPLES: Sample[] = [
   {
     // The interviewer states the numbers; the candidate only agrees. A quote of the
     // interviewer's words must be dropped.
-    role: 'Review 4 (interviewer states the result) Data engineer intern',
+    label: 'Sample 4: interviewer states the result',
+    role: 'Data engineer intern',
     difficulty: 'EASY',
     turns: [
       [I, OPENING],
@@ -69,7 +74,8 @@ const SAMPLES: Sample[] = [
     ],
   },
   {
-    role: 'Review 5 (one short answer) Software engineer intern',
+    label: 'Sample 5: one short answer',
+    role: 'Software engineer intern',
     difficulty: 'EASY',
     turns: [
       [I, OPENING],
@@ -79,7 +85,13 @@ const SAMPLES: Sample[] = [
   },
 ]
 
-const short = (text: string | null, n = 70) => (text && text.length > n ? `${text.slice(0, n)}…` : text ?? '-')
+// Checked here on its own, not with the server's checkQuote, so the review can catch a bug in it.
+function inTurn(quote: string | null, text: string | undefined): string {
+  if (!quote || !text) return '-'
+  if (text.toLowerCase().includes(quote.toLowerCase())) return 'yes'
+  const words = (t: string) => ` ${t.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()} `
+  return words(text).includes(words(quote)) ? 'yes, apart from punctuation' : 'NO'
+}
 
 for (const sample of SAMPLES) {
   const interview = await prisma.interview.create({
@@ -95,7 +107,7 @@ for (const sample of SAMPLES) {
     },
   })
   const ok = await scoreInterview(interview.id)
-  console.log(`\n## ${sample.role} (${interview.id})`)
+  console.log(`\n## ${sample.label}, ${sample.role} (${interview.id})`)
   if (!ok) {
     console.log('Scoring FAILED')
     continue
@@ -105,12 +117,11 @@ for (const sample of SAMPLES) {
     include: { scores: { include: { turn: true } } },
   })
   console.log(`Overall ${report.overallScore} ${report.verdict}. ${report.summary}`)
-  console.log('| Skill | Score | Quote | Turn | Speaker | In that turn | Comment |')
-  console.log('|---|---|---|---|---|---|---|')
+  console.log('| Skill | Score | Quote | Turn | Speaker | In that turn |')
+  console.log('|---|---|---|---|---|---|')
   for (const s of report.scores) {
-    const inTurn = s.quote && s.turn ? (s.turn.text.toLowerCase().includes(s.quote.toLowerCase()) ? 'yes' : 'yes (normalized)') : '-'
     console.log(
-      `| ${s.skill} | ${s.score} | ${short(s.quote)} | ${s.turn?.index ?? '-'} | ${s.turn?.speaker ?? '-'} | ${inTurn} | ${short(s.comment, 90)} |`,
+      `| ${s.skill} | ${s.score} | ${s.quote ?? '-'} | ${s.turn?.index ?? '-'} | ${s.turn?.speaker ?? '-'} | ${inTurn(s.quote, s.turn?.text)} |`,
     )
   }
 }
