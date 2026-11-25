@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
-import { Loader2, Mic, MicOff } from 'lucide-react'
+import { AudioLines, Loader2, Mic, MicOff, User } from 'lucide-react'
 import type { InterviewDetail, TurnDto } from '@deepdive/shared'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
@@ -117,34 +117,58 @@ function Room({ interview }: { interview: InterviewDetail }) {
     )
   }
 
+  // Before Begin (or Resume): a waiting room with the one action. Also shown again if a
+  // reconnect finds the interview not started yet.
+  if (!joined || view.state === null) {
+    const created = interview.status === 'CREATED'
+    return (
+      <div className="flex min-h-[65svh] items-center justify-center">
+        <Card className="w-full max-w-md items-center gap-3 px-6 py-10 text-center md:px-10">
+          <p className="text-sm text-muted-foreground">
+            {interview.role} · {DIFFICULTY_LABEL[interview.difficulty]} · {interview.durationMin} min
+          </p>
+          <h1 className="text-3xl font-medium text-white">
+            {created ? 'Ready when you are.' : 'Your interview is still running.'}
+          </h1>
+          <Button size="lg" className="mt-4 w-full" onClick={join} disabled={joining || view.connection !== 'open'}>
+            {created ? 'Begin' : 'Resume interview'}
+          </Button>
+          {joinError && <p className="text-sm text-destructive">{joinError}</p>}
+          {view.error && <p className="text-sm text-destructive">{view.error.message}</p>}
+        </Card>
+      </div>
+    )
+  }
+
   return (
     // Bottom padding on phones leaves room for the pinned control bar.
-    <div className="space-y-4 pb-28 md:pb-0">
+    <div className="space-y-4 pb-36 md:pb-0">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">
+        <h1 className="text-xl font-semibold text-white">
           {interview.role} · {DIFFICULTY_LABEL[interview.difficulty]}
         </h1>
-        <span className="font-mono text-sm tabular-nums">
+        <span className="shrink-0 rounded-full border bg-card px-3 py-1 font-mono text-sm whitespace-nowrap tabular-nums">
           {secondsLeft === 0 ? 'Time is up' : `${formatTime(secondsLeft)} left`}
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Card className={`h-28 items-center justify-center md:h-40 ${speaking ? 'ring-4 ring-primary/60 animate-pulse' : ''}`}>
-          <span className="font-medium">Interviewer</span>
-        </Card>
-        <Card className="h-28 items-center justify-center gap-1 md:h-40">
-          <span className="font-medium">You</span>
-          <span className="flex items-center gap-1 text-sm text-muted-foreground">
-            {recording ? <Mic className="size-4 text-destructive" /> : <MicOff className="size-4" />}
-            {recording ? 'Recording' : 'Mic off'}
-          </span>
-        </Card>
+        <Tile label="Interviewer" active={speaking} icon={<AudioLines className="size-7 md:size-9" />} />
+        <Tile
+          label="You"
+          active={recording}
+          icon={<User className="size-7 md:size-9" />}
+          status={
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              {recording ? <Mic className="size-3.5 text-destructive" /> : <MicOff className="size-3.5" />}
+              {recording ? 'Recording' : 'Mic off'}
+            </span>
+          }
+        />
       </div>
 
-      <p className="flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+      <p className="flex min-h-5 items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
         <StatusLabel
-          joined={joined}
           speaking={speaking}
           state={view.state}
           recording={recording}
@@ -155,19 +179,8 @@ function Room({ interview }: { interview: InterviewDetail }) {
 
       <Captions turns={view.captions} />
 
-      {/* Also shown again if a reconnect finds the interview not started yet. */}
-      {(!joined || view.state === null) && (
-        <Card className="items-center gap-3 p-6 text-center">
-          <p>{interview.status === 'CREATED' ? 'Ready when you are.' : 'Your interview is still running.'}</p>
-          <Button size="lg" onClick={join} disabled={joining || view.connection !== 'open'}>
-            {interview.status === 'CREATED' ? 'Begin' : 'Resume interview'}
-          </Button>
-          {joinError && <p className="text-sm text-destructive">{joinError}</p>}
-        </Card>
-      )}
-
       {/* Pinned to the bottom on phones, inline on larger screens. */}
-      <div className="fixed inset-x-0 bottom-0 space-y-2 border-t bg-background p-4 md:static md:border-0 md:p-0">
+      <div className="fixed inset-x-0 bottom-0 z-10 space-y-2 border-t bg-background p-4 md:static md:border-0 md:bg-transparent md:p-0">
         {view.error && (
           <Alert variant="destructive">
             <AlertDescription className="flex items-center justify-between gap-4">
@@ -184,28 +197,46 @@ function Room({ interview }: { interview: InterviewDetail }) {
             </AlertDescription>
           </Alert>
         )}
-        {joined && (
-          <div className="flex gap-3">
-            <Button size="lg" className="flex-1 md:flex-none" disabled={!recording} onClick={finishAnswer}>
-              Finish answer
-            </Button>
-            <EndButton onEnd={room.end} />
-          </div>
-        )}
+        <div className="flex gap-3 md:justify-center">
+          <Button size="lg" className="flex-1 md:flex-none" disabled={!recording} onClick={finishAnswer}>
+            Finish answer
+          </Button>
+          <EndButton onEnd={room.end} />
+        </div>
       </div>
     </div>
   )
 }
 
+// One participant. A static outline marks who is speaking: the interviewer while their
+// audio plays, the candidate while the microphone records.
+function Tile({ label, active, icon, status }: { label: string; active: boolean; icon: ReactNode; status?: ReactNode }) {
+  return (
+    <div
+      className={`relative grid h-36 place-items-center rounded-xl bg-(--tile) ring-1 ring-white/5 md:h-auto md:aspect-video ${
+        active ? 'outline-3 -outline-offset-3 outline-(--speaking)' : ''
+      }`}
+    >
+      <span
+        className={`grid size-16 place-items-center rounded-full text-white md:size-20 ${
+          active ? 'bg-primary' : 'bg-navy-700'
+        }`}
+      >
+        {icon}
+      </span>
+      <span className="absolute bottom-2.5 left-3 text-sm font-medium">{label}</span>
+      {status && <span className="absolute top-2.5 right-3">{status}</span>}
+    </div>
+  )
+}
+
 function StatusLabel(props: {
-  joined: boolean
   speaking: boolean
   state: string | null
   recording: boolean
   seconds: number
   timeUp: boolean
 }) {
-  if (!props.joined) return null
   if (props.speaking) return <>Interviewer is speaking</>
   if (props.state === 'thinking' || props.state === null) {
     return (
@@ -224,17 +255,17 @@ function Captions({ turns }: { turns: TurnDto[] }) {
   const box = useRef<HTMLDivElement>(null)
   // Keep the newest caption in view.
   useEffect(() => {
-    box.current?.scrollTo({ top: box.current.scrollHeight, behavior: 'smooth' })
+    box.current?.scrollTo({ top: box.current.scrollHeight })
   }, [turns.length])
 
   return (
     <Card className="gap-0 p-0">
-      <p className="border-b px-4 py-2 text-sm font-medium">Captions</p>
+      <p className="border-b px-4 py-2.5 text-sm font-medium">Captions</p>
       <div ref={box} className="h-64 space-y-3 overflow-y-auto px-4 py-3 md:h-72">
         {turns.length === 0 && <p className="text-sm text-muted-foreground">Captions appear here.</p>}
         {turns.map((turn) => (
           <div key={turn.id}>
-            <p className="text-xs font-medium text-muted-foreground">
+            <p className={`text-xs font-medium ${turn.speaker === 'INTERVIEWER' ? 'text-navy-200' : 'text-muted-foreground'}`}>
               {turn.speaker === 'INTERVIEWER' ? 'Interviewer' : 'You'}
             </p>
             <p>{turn.text}</p>
@@ -249,7 +280,7 @@ function EndButton({ onEnd }: { onEnd: () => void }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button size="lg" variant="outline">
+        <Button size="lg" className="bg-destructive text-white shadow-none hover:bg-destructive/85">
           End interview
         </Button>
       </AlertDialogTrigger>
