@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { Download, Loader2, Play } from 'lucide-react'
+import { ArrowLeft, Download, Loader2, Play } from 'lucide-react'
 import { SKILL_WEIGHTS, type InterviewDetail, type ReportDto, type ScoreDto } from '@deepdive/shared'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -112,6 +112,11 @@ function Report({ interview, report }: { interview: InterviewDetail; report: Rep
 
   return (
     <div className="space-y-6">
+      <Button asChild variant="ghost" size="sm" className="-ml-3">
+        <Link to="/setup">
+          <ArrowLeft /> Back to setup
+        </Link>
+      </Button>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-white">{interview.role}</h1>
