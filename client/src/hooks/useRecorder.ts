@@ -5,6 +5,8 @@ import { ANSWER_MIME_TYPE } from '@deepdive/shared'
 export function useRecorder() {
   const stream = useRef<MediaStream | null>(null)
   const recorder = useRef<MediaRecorder | null>(null)
+  // Reads the microphone level for the room's halo; it does not change what is recorded.
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null)
   const [recording, setRecording] = useState(false)
   const [seconds, setSeconds] = useState(0)
 
@@ -23,10 +25,16 @@ export function useRecorder() {
     },
     [],
   )
+  useEffect(() => () => void (analyser?.context as AudioContext | undefined)?.close(), [analyser])
 
   // Asks for the microphone. Throws if the browser blocks it.
   const open = useCallback(async () => {
-    stream.current ??= await navigator.mediaDevices.getUserMedia({ audio: true })
+    if (stream.current) return
+    stream.current = await navigator.mediaDevices.getUserMedia({ audio: true })
+    const context = new AudioContext()
+    const node = context.createAnalyser()
+    context.createMediaStreamSource(stream.current).connect(node)
+    setAnalyser(node)
   }, [])
 
   const start = useCallback(() => {
@@ -56,5 +64,5 @@ export function useRecorder() {
     [],
   )
 
-  return { open, start, stop, recording, seconds }
+  return { open, start, stop, recording, seconds, analyser }
 }
