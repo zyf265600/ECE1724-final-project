@@ -13,7 +13,7 @@ ECE1724 final project, Team 28. Proposal: [docs/Team28_Final_Project_Proposal.md
 
 ## Development guide
 
-Requirements: Node.js 22 or newer, and PostgreSQL 16 or newer running locally.
+Requirements: Node.js 22 or newer, PostgreSQL 16 or newer running locally, and Chrome or Edge (the meeting room records WebM audio).
 
 ```bash
 npm install                            # installs client, server and shared; generates the Prisma client
@@ -25,6 +25,7 @@ npm run dev                            # starts server (port 4000) and client (p
 
 Open <http://localhost:5173>: the Home page lists past interviews, and *Start a new interview* opens the Setup page.
 *Start interview* on the Setup page opens the meeting room; *Begin* starts the voice interview (allow the microphone when the browser asks).
+When the interview ends, the answers are scored and the report opens; past reports are listed on the Home page.
 In development, Vite forwards `/api` and `/ws` requests to the server, so the client always calls relative paths such as `/api/health`.
 
 Other commands:
