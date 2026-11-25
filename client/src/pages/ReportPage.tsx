@@ -114,7 +114,7 @@ function Report({ interview, report }: { interview: InterviewDetail; report: Rep
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">{interview.role}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-white">{interview.role}</h1>
           <p className="text-muted-foreground">
             {DIFFICULTY_LABEL[interview.difficulty]} · {interview.durationMin} min · {shortDate(interview.createdAt)}
           </p>
@@ -125,10 +125,14 @@ function Report({ interview, report }: { interview: InterviewDetail; report: Rep
         </Button>
       </div>
 
-      <Card className="gap-2 p-6">
-        <p className="text-sm font-medium text-muted-foreground">{VERDICT_LABEL[report.verdict]}</p>
-        <p className="text-4xl font-semibold">{report.overallScore.toFixed(1)} / 4</p>
-        <p>{report.summary}</p>
+      <Card className="gap-3 p-6 md:p-8">
+        <p className="w-fit rounded-full border border-primary/50 bg-primary/15 px-3 py-1 text-sm font-medium text-navy-100">
+          {VERDICT_LABEL[report.verdict]}
+        </p>
+        <p className="text-5xl font-semibold text-white">
+          {report.overallScore.toFixed(1)} <span className="text-2xl font-normal text-muted-foreground">/ 4</span>
+        </p>
+        <p className="text-[0.95rem] leading-relaxed">{report.summary}</p>
       </Card>
 
       <ul className="space-y-3">
@@ -148,16 +152,16 @@ function Report({ interview, report }: { interview: InterviewDetail; report: Rep
 
 function SkillCard({ score, canPlay }: { score: ScoreDto; canPlay: boolean }) {
   return (
-    <Card className="gap-2 p-4">
+    <Card className="gap-2.5 p-5">
       <div className="flex items-baseline justify-between gap-4">
-        <p className="font-medium">
+        <p className="font-medium text-white">
           {SKILL_LABEL[score.skill]}{' '}
           <span className="text-sm font-normal text-muted-foreground">{SKILL_WEIGHTS[score.skill] * 100}%</span>
         </p>
-        <p className="font-semibold">{score.score} / 4</p>
+        <p className="rounded-full bg-muted px-2.5 py-0.5 text-sm font-semibold text-white">{score.score} / 4</p>
       </div>
       <p className="text-sm">{score.comment}</p>
-      {score.quote && <blockquote className="border-l-2 pl-3 text-sm italic">“{score.quote}”</blockquote>}
+      {score.quote && <blockquote className="border-l-2 border-navy-400 pl-3 text-sm text-muted-foreground italic">“{score.quote}”</blockquote>}
       {score.turnId && canPlay && <PlayAnswer turnId={score.turnId} />}
     </Card>
   )

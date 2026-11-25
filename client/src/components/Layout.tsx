@@ -1,19 +1,32 @@
-import { Link, Outlet } from 'react-router'
+import { Link, Outlet, useMatch } from 'react-router'
 
 // Shared page frame: the app name (links home) above each page.
+// Home is full-width, with the header over its first photo.
 export function Layout() {
+  const home = useMatch('/') !== null
+
   return (
-    <div className="min-h-svh bg-background text-foreground">
-      <header className="border-b">
-        <div className="mx-auto flex h-14 max-w-4xl items-center px-4">
-          <Link to="/" className="text-lg font-semibold">
-            DeepDive
+    <div className="min-h-svh text-foreground">
+      <header className={home ? 'absolute inset-x-0 top-0 z-20' : ''}>
+        <div className={`mx-auto flex h-16 items-center px-4 md:px-6 ${home ? 'md:px-[8vw]' : 'max-w-5xl'}`}>
+          <Link to="/" className="inline-flex items-center gap-2.5">
+            <span
+              className="grid size-8 place-items-center rounded-[0.6rem] bg-linear-135 from-primary to-navy-900 text-base font-bold text-white"
+              aria-hidden
+            >
+              D
+            </span>
+            <span className="text-xl font-semibold tracking-wide text-white">DeepDive</span>
           </Link>
         </div>
       </header>
-      <main className="mx-auto max-w-4xl px-4 py-8">
+      {home ? (
         <Outlet />
-      </main>
+      ) : (
+        <main className="mx-auto max-w-5xl px-4 pt-4 pb-10 md:px-6">
+          <Outlet />
+        </main>
+      )}
     </div>
   )
 }

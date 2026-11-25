@@ -17,15 +17,15 @@ Requirements: Node.js 22 or newer, PostgreSQL 16 or newer running locally, and C
 
 ```bash
 npm install                            # installs client, server and shared; generates the Prisma client
-cp server/.env.example server/.env     # then fill in BOSON_API_KEY and DEEPSEEK_API_KEY (S3 is optional for now)
+cp server/.env.example server/.env     # then fill in BOSON_API_KEY, DEEPSEEK_API_KEY and the S3 settings
 createdb deepdive                      # empty database named in DATABASE_URL
 npm run db:migrate -w server           # creates the tables
 npm run dev                            # starts server (port 4000) and client (port 5173)
 ```
 
-Open <http://localhost:5173>: the Home page lists past interviews, and *Start a new interview* opens the Setup page.
+Open <http://localhost:5173>: the Home page introduces the app, and *Start a new interview* opens the Setup page, which also lists past interviews.
 *Start interview* on the Setup page opens the meeting room; *Begin* starts the voice interview (allow the microphone when the browser asks).
-When the interview ends, the answers are scored and the report opens; past reports are listed on the Home page.
+When the interview ends, the answers are scored and the report opens; *Play my answer* replays the quoted answer from S3. Past reports are listed on the Setup page.
 In development, Vite forwards `/api` and `/ws` requests to the server, so the client always calls relative paths such as `/api/health`.
 
 Other commands:

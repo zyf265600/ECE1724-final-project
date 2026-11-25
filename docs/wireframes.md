@@ -5,37 +5,45 @@ Desktop first, then phone (one column, controls pinned to the bottom).
 
 | Page | Route | Data |
 |---|---|---|
-| Home (start + history) | `/` | `GET /api/interviews`, `DELETE /api/interviews/:id` |
-| Setup | `/setup` | `POST /api/interviews` |
+| Home (product introduction) | `/` | none (static page) |
+| Setup (new interview + past interviews) | `/setup` | `POST /api/interviews`, `GET /api/interviews`, `DELETE /api/interviews/:id` |
 | Meeting Room | `/interviews/:id/room` | `GET /api/interviews/:id`, WebSocket `/ws/interviews/:id` |
 | Report | `/interviews/:id/report` | `GET /api/interviews/:id/report`, `GET /api/interviews/:id`, `GET /api/turns/:id/audio` |
 
 ## 1. Home
 
-History is a section of Home, not a separate page, so the app keeps four pages.
+A product introduction in five full-screen sections, each over a black-and-white photo tinted navy. Each scroll stops on the next section (CSS scroll snapping, home page only); there are no other scroll effects.
 
-![Home wireframes: the desktop history table becomes a list of cards on phones](wireframes/home.svg)
+![Home wireframes: five full-screen sections over photos, each scroll stops on the next one](wireframes/home.svg)
 
-Phone: the table becomes a list of cards.
+Phone: the same sections in one column; buttons stack.
 
-- **Result column** comes from `InterviewListItem.status`: `DONE` → `overallScore` + `verdict`; `SCORING` → "Scoring…"; `FAILED` → "Failed"; `CREATED` / `LIVE` → "Unfinished".
-- **Delete** (✕) opens a confirm dialog ("Delete this interview and its recordings?"), then calls `DELETE`.
-- **Empty state:** "No interviews yet." under the heading.
+1. **Hero:** "Practice explaining your project." + *Start a new interview* (→ Setup) and *See how it works* (→ section 2).
+2. **Spoken follow-ups:** every question is written from the candidate's transcript, at the chosen difficulty.
+3. **Meeting room:** spoken questions with live captions; nobody cuts you off, *Finish answer* ends an answer.
+4. **Scored report:** five skills scored 1 to 4, quotes that play back, Markdown download.
+5. **Ready when you are:** what to bring (one project, Chrome or Edge, a microphone) + *Start a new interview*. The photo credits (Unsplash) sit at the bottom.
+
+The text only describes features that work. Past interviews moved to the Setup page (section 2), so the app still has four pages.
 
 ## 2. Setup
 
-Every field has a default, so the shortest path is: type nothing, click **Start** (two clicks from Home).
+Every field has a default, so the shortest path is: type nothing, click **Start** (two clicks from Home). Past interviews are listed below the form.
 
-![Setup wireframes: role, difficulty, length, voice and microphone check, with Start interview pinned on phones](wireframes/setup.svg)
+![Setup wireframes: role, difficulty, length, voice and microphone check, then past interviews; Start interview pinned on phones](wireframes/setup.svg)
 
-Phone: same fields stacked; **Start interview** pinned to the bottom, full width.
+Phone: same fields stacked; past interviews become cards; **Start interview** pinned to the bottom, full width.
 
-- **Microphone check** asks for permission (`getUserMedia`) and shows a live level bar. If permission is denied: "Microphone blocked. Allow it in the browser settings, then test again." **Start** stays disabled until the check passes.
+- **Microphone check:** *Test microphone* asks for permission (`getUserMedia`) and shows a level bar that moves only during the test; the button turns into *Finish test*, which releases the microphone. The bar shows loudness in decibels (-50 dB empty, -10 dB full), rises quickly and falls slowly, so it follows the voice without flickering. If permission is denied: "Microphone blocked. Allow it in the browser settings, then test again." **Start** stays disabled until the check passes.
 - **Start** → `POST /api/interviews` → navigate to `/interviews/:id/room`. On error, show the message under the button; the form keeps its values.
+- **Past interviews:** a table on desktop, cards on phones. Clicking a row opens its report, or its room if unfinished.
+  - **Result column** comes from `InterviewListItem.status`: `DONE` → `overallScore` + `verdict`; `SCORING` → "Scoring…"; `FAILED` → "Failed"; `CREATED` / `LIVE` → "Unfinished".
+  - **Delete** (✕) opens a confirm dialog ("Delete this interview and its recordings?"), then calls `DELETE`.
+  - **Empty state:** "No interviews yet." under the heading.
 
 ## 3. Meeting Room
 
-Like a video call: two tiles, captions, a control bar. No avatar; the interviewer tile is a name plate with a speaking ring.
+Like a video call: two tiles, captions, a control bar. No avatar; each tile is an icon and a name. Before *Begin*, a waiting card replaces the call (below).
 
 ![Meeting Room wireframes: interviewer and candidate tiles, live captions, timer and pinned controls on phones](wireframes/meeting-room.svg)
 
@@ -43,15 +51,16 @@ Phone: tiles stacked and shorter; captions scroll in the middle; control bar pin
 
 What each `RoomState` looks like:
 
-| State | Status label | Ring | Microphone | Finish answer |
+| State | Status label | Blue outline | Microphone | Finish answer |
 |---|---|---|---|---|
-| before start (`CREATED`) | "Ready when you are" + big **Begin** button | off | off | hidden |
-| `speaking` | "Interviewer is speaking" | pulsing | off | disabled |
-| `thinking` | "Thinking…" (spinner) | off | off | disabled |
-| `listening` | "Your turn" + recording time | off | **on** (red mic icon) | enabled |
+| before start (`CREATED`) | waiting card only: role · difficulty · length, "Ready when you are." + **Begin** | none | off | hidden |
+| `speaking` | "Interviewer is speaking" | interviewer tile | off | disabled |
+| `thinking` | "Thinking…" (spinner) | none | off | disabled |
+| `listening` | "Your turn" + recording time | your tile | **on** (red mic icon) | enabled |
 | `ended` | "Interview finished. Scoring your answers…" | off | off | hidden |
 
-- **Begin** sends `interview.start`. The click also unlocks browser audio, so interviewer speech can play.
+- The outline marks who is speaking: the interviewer while their audio plays, the candidate while the microphone records. It switches on and off without animation.
+- **Begin** sends `interview.start`. The click also unlocks browser audio, so interviewer speech can play. Reopening a running interview shows the same card with "Your interview is still running." and **Resume interview**. The call opens directly, with no countdown or entrance effect.
 - **Captions** append every `caption` message (both speakers), in `turn.index` order.
 - **Timer** counts down from `startedAt + durationMin`.
 - **End interview** asks "End now? Your answers so far will be scored. The answer you are giving now is not included." then sends `interview.end`.

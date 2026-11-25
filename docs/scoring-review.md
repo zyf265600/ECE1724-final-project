@@ -21,7 +21,7 @@ That earlier run also put the sample label into the role ("Review 2 (vague) …"
 
 ## Quotes, per score
 
-"In that turn" is checked by the review script on its own (case-insensitive text match, then a match ignoring punctuation), not with the server's check. Recordings need S3, which is not set up yet, so *Play my answer* could not be compared with the quotes.
+"In that turn" is checked by the review script on its own (case-insensitive text match, then a match ignoring punctuation), not with the server's check. These five interviews were scored from typed transcripts, so they have no recordings; playback is checked separately below.
 
 ### Sample 1: strong, Backend engineer intern
 
@@ -74,6 +74,10 @@ That earlier run also put the sample label into the role ("Review 2 (vague) …"
 | CLARITY | 2 | I made a to-do list app for a course project. | 1 | CANDIDATE | yes |
 
 Result: 25 of 25 quotes kept; each links to a CANDIDATE turn of its own interview and appears in that turn's text. The server dropped none. In sample 4 the LLM did not quote the interviewer's numbers.
+
+## Playback
+
+Checked on 2026-11-23, once S3 was set up, with one recorded interview (one spoken answer). Its report kept quotes for four skills; each links to that candidate turn, and *Play my answer* plays that turn's recording (13.9 s), the audio its text was transcribed from. So the quote and the playback come from the same answer.
 
 ## The server's quote check
 

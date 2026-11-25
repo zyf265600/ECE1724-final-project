@@ -88,7 +88,7 @@ Scoring normally starts by itself when the interview ends, and again after a ser
 A presigned URL for one candidate answer, valid for 5 minutes. The browser plays it directly from S3 (`<audio src={url}>`).
 
 ```json
-{ "url": "https://<bucket>.s3.ca-central-1.amazonaws.com/interviews/…/turns/….webm?X-Amz-…", "expiresAt": "2026-11-15T06:23:47.876Z" }
+{ "url": "https://<bucket>.s3.us-east-2.amazonaws.com/interviews/…/turns/….webm?X-Amz-…", "expiresAt": "2026-11-15T06:23:47.876Z" }
 ```
 
 ### DELETE /api/interviews/:id
