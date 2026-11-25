@@ -38,7 +38,7 @@ Open question: *Score again* on the report page needs a way to restart scoring; 
 ## C4: full interview (2026-11-17)
 
 1. **The time limit is checked between answers.** After each answer the server compares `startedAt + durationMin` with the clock. If time is up, the interviewer says a fixed closing line instead of a new question, and the interview moves to `SCORING`. An answer already in progress is always heard out; the room shows "Time is up. Finish your answer to end the interview."
-2. **Unfinished interviews can be resumed from Home.** Clicking a `CREATED` or `LIVE` row opens its room; *Resume interview* reconnects and continues (C3 decision 4).
+2. **Unfinished interviews can be resumed from the list of past interviews** (on Home until C7, now below the Setup form). Clicking a `CREATED` or `LIVE` row opens its room; *Resume interview* reconnects and continues (C3 decision 4).
 
 ## C5: scoring (2026-11-17)
 
@@ -65,6 +65,15 @@ Code: `server/src/services/scoring.ts`. Review of five reports: [scoring-review.
    - Quotes must match whole words ("ache" no longer matches inside "cache").
 6. **Browsers:** Chrome and Edge. Safari cannot record WebM; its MP4 answer is transcribed correctly but stored under a `.webm` key, so playback may fail there.
 7. ***End interview* silences the interviewer at once.** The client stops the queued audio and drops any chunk that still arrives; the server stops streaming speech once the interview is no longer `LIVE`. The closing line after the time limit still plays to the end, because the interview is `LIVE` until it finishes.
+
+## C7: polish (2026-11-23)
+
+1. **Home introduces the product** in five full-screen sections over photos (Unsplash, credited at the bottom); each scroll stops on a section (CSS scroll snapping, home page only), with no other scroll effects. The text describes only working features.
+2. **Past interviews moved below the Setup form**, so the app keeps four pages and starting an interview and finding an old report happen in one place.
+3. **One dark navy theme.** Colors are CSS variables in `client/src/index.css` (the shadcn/ui tokens plus a small navy scale); pages use the names, not hex values.
+4. **Meeting room:** before *Begin* a waiting card replaces the call; the call opens directly, with no countdown or entrance effect. The tile of whoever is speaking gets a static blue outline: the interviewer while their audio plays, the candidate while the microphone records.
+5. **Microphone check:** the level bar moves only between *Test microphone* and *Finish test*. It maps loudness in decibels (-50 dB empty, -10 dB full) and is smoothed (it rises a quarter and falls a tenth of the way per frame). Automatic gain control is off for the check, because it evens out loud and quiet speech.
+6. **S3 checked end to end (2026-11-23):** `npm run s3:check -w server` passes; in a recorded interview the answer was stored (225 KB WebM), *Play my answer* played it through a presigned URL, and deleting the interview deleted the object (the old URL then returns 403). This replaces C6 decision 4's "until S3 is set up".
 
 ## Proposal feedback: quotes must match their turn (2026-11-15)
 
