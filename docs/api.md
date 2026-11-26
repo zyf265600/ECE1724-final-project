@@ -8,7 +8,7 @@ All timestamps are ISO 8601 strings. The meeting room's WebSocket protocol is in
 Every 4xx/5xx response has the same body (`ApiError`):
 
 ```json
-{ "error": { "code": "VALIDATION_ERROR", "message": "durationMin must be one of 5, 10, 15" } }
+{ "error": { "code": "VALIDATION_ERROR", "message": "durationMin must be one of 3, 5, 10" } }
 ```
 
 | Status | `code` | When |
@@ -38,7 +38,7 @@ Creates an interview with status `CREATED`. The meeting room starts it later ove
 |---|---|---|
 | `role` | string | 1–100 characters after trimming spaces |
 | `difficulty` | `"EASY"` \| `"MEDIUM"` \| `"HARD"` | |
-| `durationMin` | `5` \| `10` \| `15` | |
+| `durationMin` | `3` \| `5` \| `10` | |
 | `voice` | `"MALE"` \| `"FEMALE"` | Interviewer voice |
 
 ```bash

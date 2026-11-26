@@ -6,7 +6,7 @@ export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD'
 export type Voice = 'MALE' | 'FEMALE'
 
 // Allowed interview lengths, in minutes.
-export const DURATIONS_MIN = [5, 10, 15] as const
+export const DURATIONS_MIN = [3, 5, 10] as const
 export type DurationMin = (typeof DURATIONS_MIN)[number]
 
 // CREATED -> LIVE -> SCORING -> DONE, or FAILED if scoring cannot finish.
