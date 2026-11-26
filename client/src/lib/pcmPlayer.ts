@@ -4,9 +4,15 @@ import { TTS_AUDIO } from '@deepdive/shared'
 // are queued back to back with the Web Audio API.
 export class PcmPlayer {
   private readonly context = new AudioContext()
+  // Every chunk plays through this analyser, so the room can show how loud the interviewer is.
+  readonly analyser = this.context.createAnalyser()
   private nextStart = 0 // context time at which the next chunk starts
   private leftover: Uint8Array | null = null // odd byte from the previous chunk
   private readonly sources = new Set<AudioBufferSourceNode>()
+
+  constructor() {
+    this.analyser.connect(this.context.destination)
+  }
 
   // Browsers start audio suspended until a user gesture; call this from a click.
   unlock(): Promise<void> {
@@ -37,7 +43,7 @@ export class PcmPlayer {
 
     const source = this.context.createBufferSource()
     source.buffer = buffer
-    source.connect(this.context.destination)
+    source.connect(this.analyser)
     // A short lead on the first chunk absorbs network jitter between chunks.
     const start = Math.max(this.nextStart, this.context.currentTime + 0.1)
     source.start(start)

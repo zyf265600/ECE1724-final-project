@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { useHalo } from '@/hooks/useHalo'
 import { useRecorder } from '@/hooks/useRecorder'
 import { useRoom } from '@/hooks/useRoom'
 import { api, errorMessage } from '@/lib/api'
@@ -153,10 +154,16 @@ function Room({ interview }: { interview: InterviewDetail }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Tile label="Interviewer" active={speaking} icon={<AudioLines className="size-7 md:size-9" />} />
+        <Tile
+          label="Interviewer"
+          active={speaking}
+          analyser={room.analyser}
+          icon={<AudioLines className="size-7 md:size-9" />}
+        />
         <Tile
           label="You"
           active={recording}
+          analyser={mic.analyser}
           icon={<User className="size-7 md:size-9" />}
           status={
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -208,21 +215,37 @@ function Room({ interview }: { interview: InterviewDetail }) {
   )
 }
 
-// One participant. A static outline marks who is speaking: the interviewer while their
-// audio plays, the candidate while the microphone records.
-function Tile({ label, active, icon, status }: { label: string; active: boolean; icon: ReactNode; status?: ReactNode }) {
+// One participant. An outline marks who is speaking: the interviewer while their audio
+// plays, the candidate while the microphone records. A halo behind the avatar grows with
+// how loud they are (useHalo).
+function Tile(props: {
+  label: string
+  active: boolean
+  analyser: AnalyserNode | null
+  icon: ReactNode
+  status?: ReactNode
+}) {
+  const { label, active, icon, status } = props
+  const halo = useHalo(props.analyser, active)
   return (
     <div
       className={`relative grid h-36 place-items-center rounded-xl bg-(--tile) ring-1 ring-white/5 md:h-auto md:aspect-video ${
         active ? 'outline-3 -outline-offset-3 outline-(--speaking)' : ''
       }`}
     >
-      <span
-        className={`grid size-16 place-items-center rounded-full text-white md:size-20 ${
-          active ? 'bg-primary' : 'bg-navy-700'
-        }`}
-      >
-        {icon}
+      <span className="relative size-16 md:size-20">
+        <span
+          ref={halo}
+          className="absolute inset-0 rounded-full bg-primary opacity-0 transition-[transform,opacity] duration-75"
+          aria-hidden
+        />
+        <span
+          className={`relative grid size-full place-items-center rounded-full text-white ${
+            active ? 'bg-primary' : 'bg-navy-700'
+          }`}
+        >
+          {icon}
+        </span>
       </span>
       <span className="absolute bottom-2.5 left-3 text-sm font-medium">{label}</span>
       {status && <span className="absolute top-2.5 right-3">{status}</span>}

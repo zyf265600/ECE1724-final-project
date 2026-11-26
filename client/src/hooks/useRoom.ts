@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import {
   WS_PATH,
   type ClientMessage,
@@ -71,6 +71,7 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
   const socket = useRef<WebSocket | null>(null)
   const player = useRef<PcmPlayer | null>(null)
   const muted = useRef(false) // set by End interview: no more interviewer audio
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null) // interviewer loudness, for the halo
 
   const connect = useCallback(() => {
     socket.current?.close()
@@ -120,6 +121,7 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
 
   useEffect(() => {
     player.current = new PcmPlayer()
+    setAnalyser(player.current.analyser)
     connect()
     return () => {
       const ws = socket.current
@@ -139,6 +141,7 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
 
   return {
     view,
+    analyser,
     // Call from a click: browsers only allow audio after a user gesture.
     unlockAudio: () => player.current?.unlock(),
     start: () => {
