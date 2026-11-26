@@ -107,7 +107,7 @@ function Room({ interview }: { interview: InterviewDetail }) {
     }
   }
 
-  if (ended) {
+  if (ended && !view.playing) {
     return (
       <div className="space-y-4">
         <p className="flex items-center gap-2">
