@@ -1,6 +1,7 @@
 # Test checklist
 
-Manual end-to-end checks, run before each merge into `main`. Automated tests are added later.
+Manual end-to-end checks, run before each merge into `main`.
+Automated tests (`npm test`, also run by CI on every pull request) cover what does not need a microphone: request validation, the REST endpoints against PostgreSQL, the quote check, weighted score and verdict, scoring retries with a mocked LLM, the switch to Claude when DeepSeek fails, and the Markdown report.
 Setup: `npm run dev`, then open <http://localhost:5173> in Chrome and allow the microphone.
 
 ## Home and Setup
@@ -16,6 +17,7 @@ Setup: `npm run dev`, then open <http://localhost:5173> in Chrome and allow the 
 
 - [ ] *Begin*: the first question is spoken and shown in the captions.
 - [ ] While the interviewer speaks, the interviewer tile has a blue outline; on your turn, your tile has it.
+- [ ] The halo behind the speaker's avatar grows and shrinks with their voice, and disappears when they are silent or it is not their turn.
 - [ ] After the question finishes, the status shows "Your turn" and the recording time counts up.
 - [ ] *Finish answer*: the answer appears in the captions, then a follow-up question about it is spoken.
 - [ ] A silent answer shows "No speech was heard…" and the recording starts again.
@@ -38,6 +40,7 @@ Setup: `npm run dev`, then open <http://localhost:5173> in Chrome and allow the 
 - [ ] While scoring, the report page shows "Scoring your answers…" and updates by itself.
 - [ ] *Download Markdown* saves a `.md` file with the scores, quotes and transcript.
 - [ ] A failed interview shows *Score again*; clicking it ends in the report.
+- [ ] *Back to setup* above the report opens the Setup page.
 - [ ] `/interviews/<unknown id>/report` shows "Interview not found."
 - [ ] Setup, Past interviews: a finished interview shows its score and verdict; clicking it opens the report.
 - [ ] `npm run s3:check -w server` ends with "S3 round trip OK".
