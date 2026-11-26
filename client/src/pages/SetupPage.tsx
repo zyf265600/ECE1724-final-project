@@ -41,8 +41,6 @@ export function SetupPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    // A running test ends here: once the microphone shows Working, Start is enough,
-    // and the room opens the microphone again on its own.
     mic.stop()
     setSubmitting(true)
     setError(null)
