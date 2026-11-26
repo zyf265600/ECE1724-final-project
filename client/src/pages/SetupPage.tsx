@@ -41,6 +41,7 @@ export function SetupPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
+    mic.stop()
     setSubmitting(true)
     setError(null)
     try {
