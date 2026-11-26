@@ -1,12 +1,31 @@
-// Interviewer questions with DeepSeek (OpenAI-compatible chat completions API).
+// Interviewer questions with DeepSeek (OpenAI-compatible chat completions API), or with
+// Claude when DeepSeek is unavailable (claude.ts).
 // Scoring (scoring.ts) uses the same chat() call in JSON mode.
 import type { Difficulty, Speaker } from '@deepdive/shared'
 import { requireEnv } from '../env.ts'
+import { claudeChat, claudeConfigured } from './claude.ts'
 import { UpstreamError, isRetryableStatus, withRetry } from './retry.ts'
 
 const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions'
 const MODEL = 'deepseek-chat'
 const TIMEOUT_MS = 20_000
+const CLAUDE_TIMEOUT_MS = 30_000 // Claude thinks before answering, so it gets longer
+// After DeepSeek fails, calls go straight to Claude for this long; the next call after it
+// tries DeepSeek again, so the interview goes back to DeepSeek once it recovers.
+const COOLDOWN_MS = 60_000
+
+let deepseekDownUntil = 0
+
+export function deepseekConfigured(): boolean {
+  return Boolean(process.env.DEEPSEEK_API_KEY?.trim())
+}
+
+export function markDeepSeekDown(reason: string): void {
+  if (Date.now() >= deepseekDownUntil) {
+    console.warn(`LLM: DeepSeek unavailable (${reason}); using Claude for the next ${COOLDOWN_MS / 1000} s`)
+  }
+  deepseekDownUntil = Date.now() + COOLDOWN_MS
+}
 
 export interface TranscriptLine {
   speaker: Speaker
@@ -51,7 +70,24 @@ interface ChatOptions {
   timeoutMs?: number
 }
 
+// One LLM call. DeepSeek answers by default; if it fails, or failed in the last minute,
+// Claude answers with the same prompts. Without an Anthropic key,
+// DeepSeek's error is thrown as before.
 export async function chat(system: string, user: string, options: ChatOptions): Promise<string> {
+  if (deepseekConfigured() && Date.now() >= deepseekDownUntil) {
+    try {
+      return await deepseekChat(system, user, options)
+    } catch (err) {
+      if (!claudeConfigured()) throw err
+      markDeepSeekDown((err as Error).message)
+    }
+  } else if (!claudeConfigured()) {
+    return deepseekChat(system, user, options) // nothing else to try
+  }
+  return claudeChat(system, user, { json: options.json ?? false, timeoutMs: options.timeoutMs ?? CLAUDE_TIMEOUT_MS })
+}
+
+async function deepseekChat(system: string, user: string, options: ChatOptions): Promise<string> {
   const apiKey = requireEnv('DEEPSEEK_API_KEY')
   return withRetry(
     async (signal) => {
