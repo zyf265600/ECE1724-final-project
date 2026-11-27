@@ -55,8 +55,7 @@ interviewsRouter.get('/:id/report', async (req, res) => {
   res.json(toReportDto(row.report))
 })
 
-// POST /api/interviews/:id/report -> 202 ("Score again"): scores a FAILED interview again
-// in the background; 409 for any other status. The report page then polls GET .../report.
+// POST /api/interviews/:id/report -> 202 ("Score again" for a FAILED interview); 409 otherwise.
 interviewsRouter.post('/:id/report', async (req, res) => {
   const row = await prisma.interview.findUnique({ where: { id: req.params.id }, select: { status: true } })
   if (!row) throw notFound('Interview')
@@ -66,8 +65,7 @@ interviewsRouter.post('/:id/report', async (req, res) => {
   res.status(202).end()
 })
 
-// DELETE /api/interviews/:id -> 204. Recordings go first, so a failed S3 call
-// leaves the rows in place and the delete can be repeated.
+// DELETE /api/interviews/:id -> 204. Deletes from S3 first, so a failed S3 call can be retried.
 interviewsRouter.delete('/:id', async (req, res) => {
   const row = await prisma.interview.findUnique({
     where: { id: req.params.id },

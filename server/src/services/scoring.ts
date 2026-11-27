@@ -1,4 +1,4 @@
-// Scores a finished interview against the fixed rubric (docs/design.md, C5).
+// Scores a finished interview against the fixed rubric (docs/design.md, Scoring).
 //
 //   transcript (numbered turns with speakers) + rubric -> DeepSeek (JSON) -> validate
 //   -> keep only quotes found in their linked CANDIDATE turn -> weighted score and verdict
@@ -16,7 +16,6 @@ import { chat } from './llm.ts'
 
 const SKILLS = Object.keys(SKILL_WEIGHTS) as Skill[]
 
-// Same rubric for every interview, so scores are comparable across sessions.
 const RUBRIC = `TECHNICAL_DEPTH: how well they explain how their system works.
   1 = only names technologies; 2 = high-level description; 3 = explains the key mechanisms correctly; 4 = explains mechanisms, their limits and why.
 TRADE_OFFS: the choices they made and the alternatives.
@@ -28,8 +27,7 @@ PERSONAL_CONTRIBUTION: what they did themselves.
 CLARITY: how easy the answers are to follow.
   1 = hard to follow; 2 = understandable with effort; 3 = clear and structured; 4 = clear, concise and well structured.`
 
-// Verdict from the weighted score (1-4, one decimal, as shown on the report).
-// Computed here, never by the LLM.
+// Verdict from the weighted score; computed here, never by the LLM.
 const VERDICTS: [min: number, verdict: Verdict][] = [
   [3.3, 'STRONG_HIRE'],
   [2.5, 'HIRE'],
@@ -53,11 +51,10 @@ export interface ScoringResult {
   droppedQuotes: { skill: Skill; quote: string; turnIndex: number | null }[] // failed the turn check
 }
 
-// One scoring run per interview at a time; a second caller shares the first run.
+// One run per interview at a time.
 const running = new Map<string, Promise<boolean>>()
 
-// Scores the interview and saves the report. Resolves true when the interview is DONE,
-// false when it ended up FAILED. Never throws.
+// Returns true if DONE, false if FAILED. Never throws.
 export function scoreInterview(interviewId: string): Promise<boolean> {
   let run = running.get(interviewId)
   if (!run) {
@@ -67,8 +64,7 @@ export function scoreInterview(interviewId: string): Promise<boolean> {
   return run
 }
 
-// "Score again" for a FAILED interview: back to SCORING, then score in the background.
-// Returns false when the interview is not FAILED.
+// "Score again": FAILED -> SCORING, scored in the background. False if not FAILED.
 export async function rescore(interviewId: string): Promise<boolean> {
   const { count } = await prisma.interview.updateMany({
     where: { id: interviewId, status: 'FAILED' },
@@ -79,7 +75,7 @@ export async function rescore(interviewId: string): Promise<boolean> {
   return true
 }
 
-// After a server restart, finish the interviews that were being scored.
+// Resume interviews left in SCORING by a restart.
 export async function resumeScoring(): Promise<void> {
   const waiting = await prisma.interview.findMany({ where: { status: 'SCORING' }, select: { id: true } })
   for (const { id } of waiting) await scoreInterview(id)
@@ -115,7 +111,7 @@ async function runScoring(interviewId: string): Promise<boolean> {
   }
 }
 
-// Asks the LLM up to twice for a valid score sheet, then checks quotes and computes the verdict.
+// Up to two LLM tries for a valid score sheet, then quote checks and verdict.
 export async function scoreTranscript(role: string, turns: Turn[]): Promise<ScoringResult> {
   if (!turns.some((t) => t.speaker === 'CANDIDATE')) return noAnswers()
 
@@ -204,18 +200,17 @@ function applyChecks(sheet: { summary: string; entries: SheetEntry[] }, turns: T
   return { overallScore, verdict: verdictFor(overallScore), summary: sheet.summary, scores, droppedQuotes }
 }
 
-// The quote is kept only if the linked turn is a CANDIDATE turn of this interview whose
-// text contains it as whole words (after normalizing). It is never moved to a different turn.
+// Keep a quote only if it appears, as whole words, in its linked CANDIDATE turn.
 export function checkQuote(quote: string | null, turnIndex: number | null, turns: Turn[]): Turn | null {
   if (!quote || turnIndex === null) return null
   const turn = turns.find((t) => t.index === turnIndex)
   if (!turn || turn.speaker !== 'CANDIDATE') return null
   const needle = normalize(quote)
-  // Spaces on both sides: "ache" must not match inside "cache".
+  // Whole words only: "ache" must not match "cache".
   return needle && ` ${normalize(turn.text)} `.includes(` ${needle} `) ? turn : null
 }
 
-// Lower case, straight quotes, no punctuation, single spaces.
+// Lowercase, no punctuation, single spaces.
 export function normalize(text: string): string {
   return text
     .toLowerCase()
@@ -226,8 +221,7 @@ export function normalize(text: string): string {
     .trim()
 }
 
-// Rounded to one decimal, the precision the report shows, so the verdict never
-// disagrees with the number next to it.
+// Rounded like the report, so the verdict always matches the displayed score.
 export function weightedScore(scores: { skill: Skill; score: number }[]): number {
   const total = scores.reduce((sum, s) => sum + s.score * SKILL_WEIGHTS[s.skill], 0)
   return Math.round(total * 10) / 10
@@ -237,7 +231,7 @@ export function verdictFor(overallScore: number): Verdict {
   return VERDICTS.find(([min]) => overallScore >= min)![1]
 }
 
-// An interview ended before any answer: nothing to send to the LLM.
+// No answers: nothing to score.
 function noAnswers(): ScoringResult {
   const scores = SKILLS.map((skill) => ({
     skill,

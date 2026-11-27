@@ -1,7 +1,4 @@
-// Health check for the two LLM providers: DeepSeek (main) and Claude (backup, see llm.ts chat()).
-// Each provider is asked for its model list, which uses no tokens. The server runs the
-// check at start; `npm run llm:check -w server` runs it by hand. A DeepSeek failure at
-// start sends the first calls straight to Claude.
+// Checks both LLMs by listing models (no tokens). Runs at start and via `npm run llm:check`.
 import Anthropic from '@anthropic-ai/sdk'
 import { CLAUDE_MODEL, claudeConfigured } from './claude.ts'
 import { deepseekConfigured, markDeepSeekDown } from './llm.ts'

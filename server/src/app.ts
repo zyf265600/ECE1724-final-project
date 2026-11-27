@@ -4,13 +4,11 @@ import { apiNotFound, errorHandler } from './http/errors.ts'
 import { interviewsRouter } from './routes/interviews.ts'
 import { turnsRouter } from './routes/turns.ts'
 
-// Builds the Express app without starting it, so index.ts owns the HTTP server
-// (the WebSocket server attaches to the same one).
+// Express app only; index.ts starts the HTTP server.
 export function createApp() {
   const app = express()
   app.use(express.json())
 
-  // Health check: lets the client (and us) confirm the server is running.
   app.get('/api/health', (_req, res) => {
     const body: HealthResponse = { status: 'ok', time: new Date().toISOString() }
     res.json(body)

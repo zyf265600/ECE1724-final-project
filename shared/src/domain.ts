@@ -21,8 +21,7 @@ export type Skill =
   | 'PERSONAL_CONTRIBUTION'
   | 'CLARITY'
 
-// Rubric weights (sum to 1). The server uses them to compute the overall score;
-// the report page shows them next to each skill.
+// Rubric weights (sum to 1).
 export const SKILL_WEIGHTS: Record<Skill, number> = {
   TECHNICAL_DEPTH: 0.25,
   TRADE_OFFS: 0.25,

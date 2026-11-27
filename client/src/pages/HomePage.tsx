@@ -2,20 +2,18 @@ import { useEffect, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { Button } from '@/components/ui/button'
 
-// Home: what DeepDive does, one full-screen section per step, and the way in.
-// Each scroll stops on a section (scroll snapping); no other scroll effects. Photos from Unsplash (free under the Unsplash License),
-// saved in public/home/, turned black and white and tinted navy.
+// Home: one full-screen section per step. Photos from Unsplash (Unsplash License).
 
 interface Photo {
   src: string
   by: string
-  page: string // the photo's Unsplash id, for the credit
+  page: string // Unsplash id, for the credit
 }
 
 interface Section {
   id: string
   photo: Photo
-  focus: string // CSS background-position: keeps the subject in frame
+  focus: string // CSS background-position for the subject
   align: 'center' | 'left' | 'right'
   content: ReactNode
 }
@@ -143,7 +141,7 @@ const SECTIONS: Section[] = [
   },
 ]
 
-// Darkens the side the text is on, so it reads over the photo.
+// Shade behind the text.
 const SHADE: Record<Section['align'], string> = {
   center:
     'bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgb(3_8_20/0.35),rgb(3_8_20/0.8)),linear-gradient(180deg,rgb(3_8_20/0.6),rgb(3_8_20/0.15)_40%,rgb(3_8_20/0.75))]',
@@ -159,7 +157,7 @@ const ALIGN: Record<Section['align'], string> = {
 }
 
 export function HomePage() {
-  // Snap only while the home page is shown; the page scrolls on <html>.
+  // Enable scroll snapping on <html> while Home is mounted.
   useEffect(() => {
     const html = document.documentElement
     html.classList.add('snap-y', 'snap-mandatory')
@@ -174,7 +172,6 @@ export function HomePage() {
           id={s.id}
           className={`relative isolate flex min-h-svh snap-start flex-col justify-center overflow-hidden px-6 py-24 md:px-[8vw] ${ALIGN[s.align]}`}
         >
-          {/* The photo in black and white, a navy tint over it, then the shade for the text. */}
           <div
             className="absolute inset-0 -z-30 bg-cover bg-no-repeat brightness-[0.8] contrast-[1.15] grayscale"
             style={{ backgroundImage: `url(${s.photo.src})`, backgroundPosition: s.focus }}
@@ -182,7 +179,7 @@ export function HomePage() {
           <div className="absolute inset-0 -z-20 bg-linear-160 from-navy-600 via-navy-800 to-navy-900 mix-blend-color" />
           <div className={`absolute inset-0 -z-10 ${SHADE[s.align]}`} />
           <div className={`flex flex-col ${s.align === 'center' ? 'items-center' : 'items-start'}`}>{s.content}</div>
-          {/* The photo credits sit at the bottom of the last section, inside its snap stop. */}
+          {/* Credits inside the last section. */}
           {i === SECTIONS.length - 1 && (
             <footer className="absolute inset-x-0 bottom-0 px-6 py-5 text-center text-xs text-muted-foreground">
               Photos from Unsplash by{' '}

@@ -11,7 +11,6 @@ import { useMicCheck, type MicStatus } from '@/hooks/useMicCheck'
 import { api, errorMessage } from '@/lib/api'
 import { DIFFICULTY_LABEL, VOICE_LABEL } from '@/lib/labels'
 
-// Every field has a default, so "Test microphone" then "Start interview" is enough.
 const DEFAULTS: CreateInterviewRequest = {
   role: 'Software engineer intern',
   difficulty: 'MEDIUM',
@@ -27,8 +26,7 @@ const MIC_TEXT: Record<MicStatus, string> = {
   error: 'No microphone found.',
 }
 
-// Setup: choose the interview settings and check the microphone (docs/wireframes.md, section 2),
-// with past interviews below.
+// Setup (docs/wireframes.md, section 2).
 export function SetupPage() {
   const navigate = useNavigate()
   const mic = useMicCheck()
@@ -56,7 +54,6 @@ export function SetupPage() {
   const canStart = mic.status === 'working' && form.role.trim() !== '' && !submitting
 
   return (
-    // Bottom padding on phones leaves room for the pinned Start button.
     <div className="space-y-12 pb-24 md:pb-0">
       <form onSubmit={submit}>
         <h1 className="mb-6 text-3xl font-semibold tracking-tight text-white">New interview</h1>
@@ -114,7 +111,7 @@ export function SetupPage() {
             </div>
           </Field>
 
-          {/* Pinned to the bottom on phones, inline on larger screens. */}
+          {/* Fixed to the bottom on phones. */}
           <div className="fixed inset-x-0 bottom-0 z-10 space-y-2 border-t bg-background p-4 md:static md:border-0 md:bg-transparent md:p-0 md:pt-2">
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" size="lg" disabled={!canStart} className="w-full md:w-auto">
@@ -137,7 +134,7 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; 
   )
 }
 
-// One-of-several buttons. Clicking the selected option again keeps it selected.
+// Single-select button group.
 function Choice({
   value,
   options,

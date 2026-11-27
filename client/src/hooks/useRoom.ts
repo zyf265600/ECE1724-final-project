@@ -9,7 +9,7 @@ import {
 } from '@deepdive/shared'
 import { PcmPlayer } from '@/lib/pcmPlayer'
 
-// Close code the server uses when the same interview is opened in another tab.
+// Close code: the interview was opened in another tab.
 const CLOSE_REPLACED = 4000
 
 export interface RoomError {
@@ -21,8 +21,8 @@ export interface RoomError {
 export interface RoomView {
   connection: 'connecting' | 'open' | 'closed'
   state: RoomState | null // null until the interview starts
-  captions: TurnDto[] // both speakers, in index order
-  playing: boolean // interviewer audio is still audible
+  captions: TurnDto[]
+  playing: boolean // interviewer audio is still playing
   error: RoomError | null
   reportReady: boolean
 }
@@ -38,8 +38,7 @@ type Action =
 function reducer(view: RoomView, action: Action): RoomView {
   switch (action.type) {
     case 'connection':
-      // A new connection starts without a room state: the server sends the current one
-      // (none for an interview that has not started, so the page offers Begin again).
+      // No state until the server sends the current one.
       return action.connection === 'connecting'
         ? { ...view, connection: action.connection, state: null }
         : { ...view, connection: action.connection }
@@ -57,8 +56,7 @@ function reducer(view: RoomView, action: Action): RoomView {
   }
 }
 
-// The meeting-room connection (protocol in shared/src/ws.ts): keeps the room state
-// and captions, and plays the interviewer's streamed speech.
+// Meeting-room WebSocket (protocol: shared/src/ws.ts).
 export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
   const [view, dispatch] = useReducer(reducer, {
     connection: 'connecting',
@@ -70,8 +68,8 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
   })
   const socket = useRef<WebSocket | null>(null)
   const player = useRef<PcmPlayer | null>(null)
-  const muted = useRef(false) // set by End interview: no more interviewer audio
-  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null) // interviewer loudness, for the halo
+  const muted = useRef(false) // set by End interview
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null) // for the halo
 
   const connect = useCallback(() => {
     socket.current?.close()
@@ -83,7 +81,7 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
 
     ws.onopen = () => dispatch({ type: 'connection', connection: 'open' })
     ws.onclose = (event) => {
-      if (socket.current !== ws) return // replaced by a newer connection on purpose
+      if (socket.current !== ws) return // replaced by a newer connection
       dispatch({ type: 'connection', connection: 'closed' })
       const message =
         event.code === CLOSE_REPLACED ? 'This interview was opened in another tab.' : 'Lost the connection to the server.'
@@ -106,7 +104,7 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
           dispatch({ type: 'playing', playing: true })
           break
         case 'audio.end':
-          // The last chunks are still queued; wait until they have been heard.
+          // Wait until the queued audio has played.
           void player.current?.finished().then(() => dispatch({ type: 'playing', playing: false }))
           break
         case 'error':
@@ -131,7 +129,7 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
     }
   }, [connect])
 
-  // Returns false when the socket is not open and nothing was sent.
+  // False if the socket is not open.
   const send = useCallback((message: ClientMessage | Blob) => {
     const ws = socket.current
     if (ws?.readyState !== WebSocket.OPEN) return false
@@ -142,12 +140,11 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
   return {
     view,
     analyser,
-    // Call from a click: browsers only allow audio after a user gesture.
+    // Call from a click; browsers block audio until the user interacts.
     unlockAudio: () => player.current?.unlock(),
     start: () => {
       if (send({ type: 'interview.start' })) dispatch({ type: 'state', state: 'thinking' })
     },
-    // Ending cuts the interviewer off: queued audio stops and later chunks are dropped.
     end: () => {
       if (!send({ type: 'interview.end' })) return
       muted.current = true
@@ -156,7 +153,7 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
     },
     sendAnswer: (recording: Blob) => {
       dispatch({ type: 'error', error: null })
-      // The server confirms; avoids recording again meanwhile.
+      // Block re-recording until the server replies.
       if (send(recording)) dispatch({ type: 'state', state: 'thinking' })
     },
     reconnect: () => {

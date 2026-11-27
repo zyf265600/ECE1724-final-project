@@ -14,16 +14,16 @@ const POLL_MS = 3000
 type Load =
   | { kind: 'loading' }
   | { kind: 'ready'; interview: InterviewDetail; report: ReportDto }
-  | { kind: 'scoring' } // 409 while SCORING: poll
+  | { kind: 'scoring' } // 409 while SCORING; keep polling
   | { kind: 'failed' } // status FAILED: offer Score again
   | { kind: 'unfinished'; interviewId: string } // CREATED or LIVE
   | { kind: 'error'; message: string; notFound: boolean }
 
-// Report (docs/wireframes.md, section 4): verdict first, then evidence per skill.
+// Report (docs/wireframes.md, section 4).
 export function ReportPage() {
   const { id = '' } = useParams()
   const [load, setLoad] = useState<Load>({ kind: 'loading' })
-  const [attempt, setAttempt] = useState(0) // bumped by Score again to restart polling
+  const [attempt, setAttempt] = useState(0) // bump to restart polling
 
   const fetchReport = useCallback(async (): Promise<Load> => {
     try {
@@ -39,7 +39,7 @@ export function ReportPage() {
     }
   }, [id])
 
-  // Load, then keep polling while scoring runs.
+  // Load, then poll while scoring is in progress.
   useEffect(() => {
     let stopped = false
     let timer: ReturnType<typeof setTimeout>
@@ -172,7 +172,6 @@ function SkillCard({ score, canPlay }: { score: ScoreDto; canPlay: boolean }) {
   )
 }
 
-// Fetches a short-lived URL for the recording on click, then plays it.
 function PlayAnswer({ turnId }: { turnId: string }) {
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)

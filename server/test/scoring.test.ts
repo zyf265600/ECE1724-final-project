@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Turn } from '../src/generated/prisma/client.ts'
 
-// No database or DeepSeek in these tests: scoring only needs the LLM reply.
+// No database or DeepSeek needed.
 vi.mock('../src/db.ts', () => ({ prisma: {} }))
 vi.mock('../src/services/llm.ts', () => ({ chat: vi.fn() }))
 

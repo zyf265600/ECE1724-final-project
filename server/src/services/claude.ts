@@ -1,11 +1,10 @@
-// Claude (Anthropic Messages API): the backup LLM when DeepSeek is unavailable.
-// It gets exactly the same system and user prompts as DeepSeek (see llm.ts chat()).
+// Claude: backup LLM when DeepSeek is unavailable (same prompts).
 import Anthropic from '@anthropic-ai/sdk'
 import { UpstreamError } from './retry.ts'
 
 export const CLAUDE_MODEL = 'claude-opus-5-5'
 
-// Created on first use, so the server starts without an Anthropic key.
+// Created on first use, so no key is needed to start.
 let client: Anthropic | null = null
 const anthropic = () => (client ??= new Anthropic({ maxRetries: 1 }))
 
@@ -14,7 +13,7 @@ export function claudeConfigured(): boolean {
 }
 
 export interface ClaudeOptions {
-  json: boolean // the reply must be one JSON object (the prompt already asks for it)
+  json: boolean // reply must be one JSON object
   timeoutMs: number
 }
 
@@ -24,12 +23,10 @@ export async function claudeChat(system: string, user: string, { json, timeoutMs
     message = await anthropic().beta.messages.create(
       {
         model: CLAUDE_MODEL,
-        // Thinking is always on for this model and counts towards max_tokens, so the
-        // DeepSeek limits (150 tokens for a question) would cut it off; length is set by the prompt.
+        // Thinking counts toward max_tokens; the prompt limits the length.
         max_tokens: 16000,
-        // A short spoken question needs little thinking; scoring keeps the model's default.
         output_config: { effort: json ? 'medium' : 'low' },
-        // If Claude declines on a safety classifier, the API retries on a suitable fallback model.
+        // Fall back to another model if a safety filter refuses.
         betas: ['server-side-fallback-2026-07-01'],
         fallbacks: 'default',
         system,
@@ -54,8 +51,7 @@ export async function claudeChat(system: string, user: string, { json, timeoutMs
   return json ? jsonObject(text) : text
 }
 
-// DeepSeek's JSON mode returns the bare object; Claude may wrap it in a ```json fence
-// or a sentence. Keep only the outermost {...} so scoring parses it the same way.
+// Claude may wrap JSON in a fence or text; extract the outermost {...}.
 function jsonObject(text: string): string {
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')

@@ -22,7 +22,7 @@ export interface InterviewDto {
   voice: Voice
   status: InterviewStatus
   createdAt: string
-  startedAt: string | null // set when the interview goes LIVE; the room timer counts from here
+  startedAt: string | null // set when LIVE; the room timer starts here
   endedAt: string | null
 }
 
@@ -31,7 +31,7 @@ export interface TurnDto {
   index: number // 0, 1, 2, ... in speaking order
   speaker: Speaker
   text: string
-  hasAudio: boolean // true when a recording exists; fetch it with GET /api/turns/:id/audio
+  hasAudio: boolean // fetch with GET /api/turns/:id/audio
   createdAt: string
 }
 
@@ -39,8 +39,8 @@ export interface ScoreDto {
   skill: Skill
   score: number // 1-4
   comment: string
-  quote: string | null // the candidate's own words; null if the quote is not in the linked candidate turn
-  turnId: string | null // a CANDIDATE turn of this interview whose text contains the quote; null when quote is null
+  quote: string | null // null if the quote check failed
+  turnId: string | null // the quoted CANDIDATE turn; null when quote is null
 }
 
 export interface ReportDto {

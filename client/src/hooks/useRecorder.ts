@@ -5,7 +5,7 @@ import { ANSWER_MIME_TYPE } from '@deepdive/shared'
 export function useRecorder() {
   const stream = useRef<MediaStream | null>(null)
   const recorder = useRef<MediaRecorder | null>(null)
-  // Reads the microphone level for the room's halo; it does not change what is recorded.
+  // Feeds the halo only; doesn't affect the recording.
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null)
   const [recording, setRecording] = useState(false)
   const [seconds, setSeconds] = useState(0)
@@ -17,7 +17,6 @@ export function useRecorder() {
     return () => clearInterval(timer)
   }, [recording])
 
-  // Release the microphone when the page closes.
   useEffect(
     () => () => {
       recorder.current?.stop()
@@ -27,7 +26,7 @@ export function useRecorder() {
   )
   useEffect(() => () => void (analyser?.context as AudioContext | undefined)?.close(), [analyser])
 
-  // Asks for the microphone. Throws if the browser blocks it.
+  // Throws if permission is denied.
   const open = useCallback(async () => {
     if (stream.current) return
     stream.current = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -39,7 +38,7 @@ export function useRecorder() {
 
   const start = useCallback(() => {
     if (!stream.current || recorder.current) return
-    // Safari cannot record WebM; the server decodes whatever the browser produces.
+    // Safari can't record WebM; the server decodes any format.
     const options = MediaRecorder.isTypeSupported(ANSWER_MIME_TYPE) ? { mimeType: ANSWER_MIME_TYPE } : undefined
     const next = new MediaRecorder(stream.current, options)
     next.start()
@@ -48,7 +47,6 @@ export function useRecorder() {
     setRecording(true)
   }, [])
 
-  // Stops recording and returns the whole answer.
   const stop = useCallback(
     () =>
       new Promise<Blob | null>((resolve) => {

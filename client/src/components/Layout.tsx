@@ -1,7 +1,6 @@
 import { Link, Outlet, useMatch } from 'react-router'
 
-// Shared page frame: the app name (links home) above each page.
-// Home is full-width, with the header over its first photo.
+// Home is full-width, with the header over its first section.
 export function Layout() {
   const home = useMatch('/') !== null
 

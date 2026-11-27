@@ -1,6 +1,5 @@
-// C5 check: scores five sample transcripts and prints, for every score, the quote,
-// the turn it links to and whether the quote is really in that candidate turn.
-// The five interviews stay in the database, so their reports can be opened in the app.
+// C5 review: scores five sample transcripts and prints each quote with its linked turn.
+// The interviews stay in the database for viewing in the app.
 //   npm run score:review -w server
 import 'dotenv/config'
 import type { Difficulty, Speaker } from '@deepdive/shared'
@@ -59,8 +58,7 @@ const SAMPLES: Sample[] = [
     ],
   },
   {
-    // The interviewer states the numbers; the candidate only agrees. A quote of the
-    // interviewer's words must be dropped.
+    // The interviewer states the numbers; quoting them must be rejected.
     label: 'Sample 4: interviewer states the result',
     role: 'Data engineer intern',
     difficulty: 'EASY',
@@ -85,7 +83,7 @@ const SAMPLES: Sample[] = [
   },
 ]
 
-// Checked here on its own, not with the server's checkQuote, so the review can catch a bug in it.
+// Independent of checkQuote, so it can catch bugs there.
 function inTurn(quote: string | null, text: string | undefined): string {
   if (!quote || !text) return '-'
   if (text.toLowerCase().includes(quote.toLowerCase())) return 'yes'

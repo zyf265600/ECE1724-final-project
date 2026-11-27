@@ -22,8 +22,7 @@ import { useRoom } from '@/hooks/useRoom'
 import { api, errorMessage } from '@/lib/api'
 import { DIFFICULTY_LABEL } from '@/lib/labels'
 
-// Meeting room (docs/wireframes.md, section 3): loads the interview, then runs
-// the live voice loop over the WebSocket.
+// Meeting room (docs/wireframes.md, section 3).
 export function RoomPage() {
   const { id = '' } = useParams()
   const [interview, setInterview] = useState<InterviewDetail | null>(null)
@@ -35,7 +34,6 @@ export function RoomPage() {
 
   if (error) return <Message text={error} />
   if (!interview) return <p className="text-muted-foreground">Loading…</p>
-  // A finished interview has nothing left to do here; its report page shows scoring progress.
   if (interview.status !== 'CREATED' && interview.status !== 'LIVE') {
     return <Navigate to={`/interviews/${id}/report`} replace />
   }
@@ -50,7 +48,7 @@ function Room({ interview }: { interview: InterviewDetail }) {
   const [joining, setJoining] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
   const [startedAt, setStartedAt] = useState(interview.startedAt)
-  const lastAnswer = useRef<Blob | null>(null) // kept so a failed transcription can be resent
+  const lastAnswer = useRef<Blob | null>(null) // kept to resend after STT_FAILED
   const secondsLeft = useSecondsLeft(startedAt, interview.durationMin)
 
   const navigate = useNavigate()
@@ -58,24 +56,23 @@ function Room({ interview }: { interview: InterviewDetail }) {
   const speaking = view.playing || view.state === 'speaking'
   const canAnswer = joined && view.connection === 'open' && view.state === 'listening' && !view.playing
 
-  // The microphone records only on the candidate's turn, after the question has been heard.
-  // After the interview: open the report once the closing words have played and scoring
-  // has finished, failed, or can no longer be followed on this socket (the report page polls).
+  // Open the report after the closing line, once scoring ends or the socket closes.
   const scoringOver = view.reportReady || view.error?.code === 'SCORING_FAILED' || view.connection === 'closed'
   useEffect(() => {
     if (ended && !view.playing && scoringOver) navigate(`/interviews/${interview.id}/report`, { replace: true })
   }, [ended, view.playing, scoringOver, navigate, interview.id])
 
+  // Record only on the candidate's turn.
   const { recording, start: startRecording, stop: stopRecording } = mic
   useEffect(() => {
     if (canAnswer && !recording) startRecording()
     if (!canAnswer && recording) void stopRecording()
   }, [canAnswer, recording, startRecording, stopRecording])
 
-  // "Begin" (new interview) or "Resume" (after a reload): the click unlocks audio.
+  // Begin or Resume; the click also unlocks audio.
   const join = async () => {
     setJoinError(null)
-    setJoining(true) // a second click while the microphone prompt is open does nothing
+    setJoining(true) // ignore repeat clicks
     try {
       await mic.open()
       await room.unlockAudio()
@@ -100,7 +97,7 @@ function Room({ interview }: { interview: InterviewDetail }) {
 
   const retry = async () => {
     if (view.error?.code === 'STT_FAILED' && lastAnswer.current) {
-      await mic.stop() // drop the new recording; send the saved one again
+      await mic.stop() // discard this one and resend the saved recording
       room.sendAnswer(lastAnswer.current)
     } else {
       room.reconnect()
@@ -118,8 +115,7 @@ function Room({ interview }: { interview: InterviewDetail }) {
     )
   }
 
-  // Before Begin (or Resume): a waiting room with the one action. Also shown again if a
-  // reconnect finds the interview not started yet.
+  // Waiting room before Begin/Resume.
   if (!joined || view.state === null) {
     const created = interview.status === 'CREATED'
     return (
@@ -142,7 +138,6 @@ function Room({ interview }: { interview: InterviewDetail }) {
   }
 
   return (
-    // Bottom padding on phones leaves room for the pinned control bar.
     <div className="space-y-4 pb-36 md:pb-0">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold text-white">
@@ -186,7 +181,7 @@ function Room({ interview }: { interview: InterviewDetail }) {
 
       <Captions turns={view.captions} />
 
-      {/* Pinned to the bottom on phones, inline on larger screens. */}
+      {/* Fixed to the bottom on phones. */}
       <div className="fixed inset-x-0 bottom-0 z-10 space-y-2 border-t bg-background p-4 md:static md:border-0 md:bg-transparent md:p-0">
         {view.error && (
           <Alert variant="destructive">
@@ -215,9 +210,7 @@ function Room({ interview }: { interview: InterviewDetail }) {
   )
 }
 
-// One participant. An outline marks who is speaking: the interviewer while their audio
-// plays, the candidate while the microphone records. A halo behind the avatar grows with
-// how loud they are (useHalo).
+// Participant tile: the outline marks who is speaking; the halo follows their volume.
 function Tile(props: {
   label: string
   active: boolean
@@ -268,7 +261,7 @@ function StatusLabel(props: {
       </>
     )
   }
-  // The server closes the interview after this answer.
+  // Time is up: the server ends the interview after this answer.
   if (props.recording && props.timeUp) return <>Time is up. Finish your answer to end the interview.</>
   if (props.recording) return <>Your turn · {formatTime(props.seconds)} recording</>
   return <>Your turn</>
@@ -276,7 +269,6 @@ function StatusLabel(props: {
 
 function Captions({ turns }: { turns: TurnDto[] }) {
   const box = useRef<HTMLDivElement>(null)
-  // Keep the newest caption in view.
   useEffect(() => {
     box.current?.scrollTo({ top: box.current.scrollHeight })
   }, [turns.length])
@@ -325,7 +317,7 @@ function EndButton({ onEnd }: { onEnd: () => void }) {
   )
 }
 
-// Seconds left, counted from when the interview went live; updated every second.
+// Seconds remaining, counted from when the interview went LIVE.
 function useSecondsLeft(startedAt: string | null, minutes: number): number {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {

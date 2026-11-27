@@ -3,8 +3,7 @@ import type { ApiError } from '@deepdive/shared'
 
 type ErrorCode = ApiError['error']['code']
 
-// Throw this from a route to send a specific status and error code.
-// Express 5 passes errors thrown in async handlers to errorHandler on its own.
+// Throw from a route to send a status and error code.
 export class HttpError extends Error {
   readonly status: number
   readonly code: ErrorCode
@@ -18,19 +17,19 @@ export class HttpError extends Error {
 
 export const notFound = (what: string) => new HttpError(404, 'NOT_FOUND', `${what} not found`)
 
-// Unknown /api paths get the same JSON error shape as everything else.
+// JSON 404 for unknown /api paths.
 export const apiNotFound: RequestHandler = (req) => {
   throw new HttpError(404, 'NOT_FOUND', `No route for ${req.method} ${req.originalUrl}`)
 }
 
-// Last middleware: turns any error into an ApiError body.
+// Turns any error into an ApiError body.
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof HttpError) {
     const body: ApiError = { error: { code: err.code, message: err.message } }
     res.status(err.status).json(body)
     return
   }
-  // Malformed JSON body (thrown by express.json()).
+  // Malformed JSON body (from express.json()).
   if (err instanceof SyntaxError && 'body' in err) {
     const body: ApiError = { error: { code: 'VALIDATION_ERROR', message: 'Request body is not valid JSON' } }
     res.status(400).json(body)

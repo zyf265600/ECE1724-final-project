@@ -1,5 +1,4 @@
-// Database rows to the JSON shapes in shared/src/rest.ts.
-// Dates become ISO strings; S3 keys never leave the server (hasAudio instead).
+// Database rows -> shared/src/rest.ts shapes. S3 keys stay on the server.
 import type { DurationMin, InterviewDto, ReportDto, ScoreDto, Skill, TurnDto } from '@deepdive/shared'
 import { SKILL_WEIGHTS } from '@deepdive/shared'
 import type { Interview, Report, Score, Turn } from './generated/prisma/client.ts'
@@ -31,7 +30,7 @@ export function toTurnDto(row: Turn): TurnDto {
   }
 }
 
-// Skills in rubric order, so the report always lists them the same way.
+// Skills in rubric order.
 const SKILL_ORDER = Object.keys(SKILL_WEIGHTS) as Skill[]
 
 export function toReportDto(row: Report & { scores: Score[] }): ReportDto {

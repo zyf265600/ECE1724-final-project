@@ -4,8 +4,7 @@
 //   answer recording -> STT -> save turn -> LLM question -> save turn -> speak -> listening
 //   time is up after an answer -> closing line -> ended -> scoring -> report.ready
 //
-// Every turn is saved as soon as it exists, so a reconnect continues where the
-// interview stopped (see resume()).
+// Turns are saved immediately, so a reconnect picks up where it left off (see resume()).
 import { randomUUID } from 'node:crypto'
 import type { RawData, WebSocket } from 'ws'
 import {
@@ -37,19 +36,17 @@ export class Room {
     private readonly turns: Turn[],
   ) {}
 
-  // Called once the socket is open: tells the client where the interview is.
-  // Saved turns are sent as captions too: a turn saved while the client was
-  // disconnected is not in the transcript it loaded (the client ignores duplicates).
+  // On connect: send the current state, plus saved turns as captions (the client skips duplicates).
   async resume(): Promise<void> {
     for (const turn of this.turns) this.send({ type: 'caption', turn: toTurnDto(turn) })
     switch (this.interview.status) {
       case 'CREATED':
-        return // the client shows "Begin" and sends interview.start
+        return // the client shows Begin and sends interview.start
       case 'LIVE': {
         const last = this.turns.at(-1)
         // The last question was already asked.
         if (last?.speaker === 'INTERVIEWER') return this.setState('listening')
-        // Stopped after an answer, or before the first question: go on from there.
+        // Pick up where it left off.
         return this.continueAfterAnswer()
       }
       default:
@@ -79,7 +76,7 @@ export class Room {
     if (this.interview.status !== 'CREATED' || this.state !== null) {
       return this.sendError('BAD_STATE', 'The interview has already started.', false)
     }
-    this.setState('thinking') // set before the first await, so a second start is refused
+    this.setState('thinking') // set before the first await so a second start is rejected
     this.interview = await prisma.interview.update({
       where: { id: this.interview.id },
       data: { status: 'LIVE', startedAt: new Date() },
@@ -87,18 +84,15 @@ export class Room {
     await this.askNext()
   }
 
-  // The candidate ends the interview early.
   private async onEnd() {
     if (this.interview.status !== 'LIVE') return this.sendError('BAD_STATE', 'The interview is not running.', false)
     await this.finish()
   }
 
-  // LIVE -> SCORING, then score. The client waits for report.ready on this socket;
-  // if the socket is gone, the report page polls instead. Runs at most once: End can
-  // be clicked while the closing line plays.
+  // LIVE -> SCORING, then score. Runs only once, since End can be clicked during the closing line.
   private async finish() {
     if (this.interview.status !== 'LIVE') return
-    this.interview = { ...this.interview, status: 'SCORING' } // before the await, so work in flight stops
+    this.interview = { ...this.interview, status: 'SCORING' } // set before the await so in-flight work stops
     this.setState('ended')
     const { count } = await prisma.interview.updateMany({
       where: { id: this.interview.id, status: 'LIVE' },
@@ -138,7 +132,7 @@ export class Room {
     if (!text) {
       return this.backToListening('STT_FAILED', noSpeech, false)
     }
-    if (!this.isLive()) return // ended, or the socket closed, while transcribing
+    if (!this.isLive()) return // ended or disconnected while transcribing
 
     const turnId = randomUUID()
     const key = await this.storeRecording(turnId, recording)
@@ -148,7 +142,7 @@ export class Room {
     await this.continueAfterAnswer()
   }
 
-  // The time limit is checked between answers: a started answer is always heard out.
+  // Checked between answers; an answer in progress always finishes.
   private async continueAfterAnswer() {
     if (!this.isLive()) return
     if (!this.timeIsUp()) return this.askNext()
@@ -177,7 +171,7 @@ export class Room {
       // The answer is saved; reconnecting runs askNext again (see resume()).
       return this.sendError('LLM_FAILED', 'The interviewer could not prepare the next question.', true)
     }
-    if (!this.isLive()) return // ended, or the socket closed, while thinking
+    if (!this.isLive()) return // ended or disconnected while thinking
 
     const turn = await this.saveTurn('INTERVIEWER', text, null)
     this.send({ type: 'caption', turn: toTurnDto(turn) })
@@ -185,8 +179,7 @@ export class Room {
     this.setState('listening')
   }
 
-  // Streams the question's audio. If TTS fails the caption is still on screen,
-  // so the interview goes on.
+  // Streams the question's audio; if TTS fails, the caption is still shown.
   private async speak(turn: Turn) {
     if (!this.isOpen()) return
     this.setState('speaking')
@@ -194,7 +187,7 @@ export class Room {
     try {
       const stream = await streamSpeech(turn.text, this.interview.voice)
       for await (const chunk of stream) {
-        // Stop streaming once the candidate ends the interview (the closing line is spoken while still LIVE).
+        // Stop once the candidate ends the interview.
         if (!this.isLive()) break
         this.ws.send(chunk)
       }
@@ -206,8 +199,7 @@ export class Room {
     }
   }
 
-  // Returns the S3 key, or null when S3 is not set up or the upload failed:
-  // losing the recording is better than losing the answer.
+  // S3 key, or null if the upload fails (the answer is still saved).
   private async storeRecording(turnId: string, recording: Buffer): Promise<string | null> {
     if (!storageConfigured()) return null
     const key = audioKey(this.interview.id, turnId)
@@ -234,7 +226,7 @@ export class Room {
   }
 
   private setState(state: RoomState) {
-    if (this.state === 'ended') return // nothing in flight may reopen a finished room
+    if (this.state === 'ended') return // a finished room stays ended
     this.state = state
     this.send({ type: 'state', state })
   }
@@ -247,9 +239,7 @@ export class Room {
     if (this.isOpen()) this.ws.send(JSON.stringify(message))
   }
 
-  // Work continues only while the interview runs and this socket is the client's.
-  // After a disconnect the next socket's room takes over (see resume()), so this one
-  // must not save turns that would collide with it.
+  // Only while live and on the current socket; after a reconnect the new room takes over.
   private isLive() {
     return this.interview.status === 'LIVE' && this.isOpen()
   }

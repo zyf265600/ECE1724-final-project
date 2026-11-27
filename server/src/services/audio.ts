@@ -6,8 +6,7 @@ import { TTS_AUDIO } from '@deepdive/shared'
 export const PCM_RATE = TTS_AUDIO.sampleRate
 export const PCM_BYTES_PER_SECOND = PCM_RATE * 2
 
-// Decodes any audio file ffmpeg can read (the browser's WebM/Opus answer, WAV, MP3)
-// into raw PCM. ffmpeg-static ships the ffmpeg binary inside node_modules.
+// Decodes any audio ffmpeg can read to raw PCM.
 export function decodeToPcm(input: Buffer): Promise<Buffer> {
   if (!ffmpegPath) return Promise.reject(new Error('ffmpeg-static has no binary for this platform'))
   const args = ['-hide_banner', '-loglevel', 'error', '-i', 'pipe:0']
@@ -24,7 +23,7 @@ export function decodeToPcm(input: Buffer): Promise<Buffer> {
       if (code === 0) resolve(Buffer.concat(out))
       else reject(new Error(`ffmpeg exited with code ${code}: ${stderr.trim()}`))
     })
-    // ffmpeg may stop reading early on a broken file; the 'close' handler reports that.
+    // ffmpeg may close stdin on broken input; 'close' reports the failure.
     ffmpeg.stdin.on('error', () => {})
     ffmpeg.stdin.end(input)
   })
@@ -38,8 +37,7 @@ export function splitPcm(pcm: Buffer, seconds: number): Buffer[] {
   return pieces
 }
 
-// True when no sample is louder than about -40 dBFS: nothing was said. Higgs STT
-// invents a sentence for silent audio, so silence must not reach it.
+// True if silent (below ~-40 dBFS); Higgs STT invents text for silence.
 export function isSilent(pcm: Buffer): boolean {
   const threshold = 0.01 * 32768
   for (let i = 0; i + 1 < pcm.length; i += 2) {
@@ -52,7 +50,7 @@ export function pcmDurationSeconds(pcm: Buffer): number {
   return pcm.length / PCM_BYTES_PER_SECOND
 }
 
-// Wraps raw PCM in a 44-byte WAV header so any audio player can open it.
+// Prepends a 44-byte WAV header to raw PCM.
 export function pcmToWav(pcm: Buffer): Buffer {
   const header = Buffer.alloc(44)
   header.write('RIFF', 0)
