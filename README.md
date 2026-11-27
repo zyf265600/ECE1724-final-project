@@ -41,7 +41,7 @@ Other commands:
 - `npm run llm:check -w server`: check that DeepSeek and the Claude backup (optional `ANTHROPIC_API_KEY`) accept their keys
 - `npm run score:review -w server`: score five sample transcripts and print every quote with the turn it links to
 
-The REST API is documented in [docs/api.md](docs/api.md). Manual checks before each merge: [docs/testing.md](docs/testing.md). CI (`.github/workflows/ci.yml`) runs lint, type-check and the tests on every pull request.
+The REST API is documented in [docs/api.md](docs/api.md). CI (`.github/workflows/ci.yml`) runs lint, type-check and the tests on every pull request.
 
 ## Workflow
 
