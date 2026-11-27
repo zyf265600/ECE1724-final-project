@@ -73,6 +73,9 @@ export function useRoom(interviewId: string, savedTurns: TurnDto[]) {
 
   const connect = useCallback(() => {
     socket.current?.close()
+    // A dropped socket never sends audio.end.
+    player.current?.stop()
+    dispatch({ type: 'playing', playing: false })
     dispatch({ type: 'connection', connection: 'connecting' })
     const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
     const ws = new WebSocket(`${protocol}://${location.host}${WS_PATH}/${interviewId}`)
