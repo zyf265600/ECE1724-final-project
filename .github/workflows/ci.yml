@@ -1,5 +1,4 @@
-# Runs on every pull request and on main: lint, type-check, then the tests.
-# The API tests need PostgreSQL, so the job starts an empty one and applies the migrations.
+# Lint, type-check and test. API tests run against a fresh PostgreSQL.
 name: CI
 
 on:

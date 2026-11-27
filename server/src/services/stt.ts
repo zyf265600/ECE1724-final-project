@@ -1,9 +1,5 @@
-// Answer transcription with Boson Higgs STT (higgs-stt-3.1).
-//
-// Boson has no plain "upload a file, get text" endpoint: Higgs STT runs inside a
-// Higgs Realtime session. So the server opens a Realtime WebSocket in manual mode
-// (no turn detection, text output, and no response.create, so the model never
-// answers), appends the answer audio, commits it, and waits for the transcript.
+// Answer transcription with Higgs STT. Boson only offers STT through a Realtime session,
+// so the server uses one in manual mode: append audio, commit, read the transcript.
 import WebSocket from 'ws'
 import { requireEnv } from '../env.ts'
 import { PCM_RATE, splitPcm } from './audio.ts'
@@ -11,12 +7,11 @@ import { UpstreamError, withRetry } from './retry.ts'
 
 const REALTIME_URL = 'wss://api.boson.ai/v1/realtime?model=higgs-realtime'
 
-// Higgs STT keeps only the last ~60 s of one commit (our tests), so longer answers
-// are committed in pieces and the transcripts joined.
+// Higgs STT keeps only ~60 s per commit, so long answers are sent in segments.
 const SEGMENT_SECONDS = 55
-// One input_audio_buffer.append carries at most ~15 s; 5 s keeps each frame small.
+// One append carries at most ~15 s.
 const APPEND_SECONDS = 5
-// Whole answer, per try: connecting plus all segments.
+// Per attempt, covering the whole answer.
 const TIMEOUT_MS = 60_000
 
 interface RealtimeEvent {
@@ -25,7 +20,7 @@ interface RealtimeEvent {
   error?: { message?: string }
 }
 
-// Close codes after which another try cannot help.
+// Close codes not worth retrying.
 const FATAL_CLOSE: Record<number, string> = { 3000: 'invalid API key', 4429: 'no credit left or spending cap reached' }
 
 // Transcribes raw PCM (24 kHz, 16-bit, mono). Returns '' for silence.
@@ -37,15 +32,14 @@ export function transcribe(pcm: Buffer): Promise<string> {
 
 async function transcribeOnce(apiKey: string, segments: Buffer[], signal: AbortSignal): Promise<string> {
   const ws = new WebSocket(REALTIME_URL, { headers: { Authorization: `Bearer ${apiKey}` } })
-  // Errors are reported through 'close', which always follows; without a listener
-  // an 'error' event would crash the process.
+  // Errors surface via 'close'; this listener keeps 'error' from crashing the process.
   ws.on('error', () => {})
   const abort = () => ws.terminate()
   signal.addEventListener('abort', abort)
   try {
-    // Register the listener before sending, so the reply cannot slip past.
+    // Subscribe before sending so the reply isn't missed.
     const created = waitFor(ws, 'session.created', signal)
-    created.catch(() => {}) // handled by the await below; avoids an unhandled rejection if opening fails
+    created.catch(() => {}) // handled by the await below
     await opened(ws)
     send(ws, {
       type: 'session.update',
@@ -55,7 +49,7 @@ async function transcribeOnce(apiKey: string, segments: Buffer[], signal: AbortS
         audio: {
           input: {
             format: { type: 'audio/pcm', rate: PCM_RATE },
-            turn_detection: null, // manual mode: we commit; nothing is said back
+            turn_detection: null, // manual mode
             transcription: { model: 'higgs-stt-3.1', language: 'en' },
           },
         },
@@ -91,8 +85,7 @@ function opened(ws: WebSocket): Promise<void> {
   })
 }
 
-// Resolves with the next event of `type`; rejects on an error event, a failed
-// transcription, the socket closing, or the time limit.
+// Next event of `type`; rejects on error, close or timeout.
 function waitFor(ws: WebSocket, type: string, signal: AbortSignal): Promise<RealtimeEvent> {
   return new Promise((resolve, reject) => {
     const cleanup = () => {

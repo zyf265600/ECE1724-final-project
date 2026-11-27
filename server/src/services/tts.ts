@@ -5,18 +5,16 @@ import { UpstreamError, isRetryableStatus, withRetry } from './retry.ts'
 
 const BOSON_URL = 'https://api.boson.ai/v1/audio/speech'
 
-// Boson preset voices for the two choices on the Setup page.
+// Boson preset voices.
 const VOICES: Record<Voice, string> = {
   FEMALE: 'eleanor', // calm, professional
   MALE: 'oliver', // calm, thoughtful
 }
 
-// Until the response starts, and then for the whole stream of one question.
+// Covers the full stream for one question.
 const TIMEOUT_MS = 30_000
 
-// Starts speaking `text` and resolves once Boson begins answering. The stream yields
-// raw PCM chunks (TTS_AUDIO format) as they are generated, about 1 s after the request.
-// Retries only before the first byte: a stream cut halfway is not restarted.
+// Starts speaking `text`; resolves when audio starts (~1 s). Retries only before the first byte.
 export function streamSpeech(text: string, voice: Voice): Promise<ReadableStream<Uint8Array>> {
   const apiKey = requireEnv('BOSON_API_KEY')
   return withRetry(
@@ -30,7 +28,7 @@ export function streamSpeech(text: string, voice: Voice): Promise<ReadableStream
             model: 'higgs-tts-3',
             input: text,
             voice: VOICES[voice],
-            language: 'eng', // reads numbers and units the English way
+            language: 'eng', // read numbers in English
             response_format: 'pcm', // streaming requires PCM
             stream: true,
           }),

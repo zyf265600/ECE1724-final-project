@@ -1,22 +1,20 @@
-// Accepts meeting-room WebSockets at `${WS_PATH}/:interviewId` on the HTTP server
-// that also serves the REST API.
+// Meeting-room WebSockets at `${WS_PATH}/:interviewId`.
 import type { Server } from 'node:http'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { MAX_ANSWER_BYTES, WS_PATH, type ServerMessage } from '@deepdive/shared'
 import { prisma } from '../db.ts'
 import { Room } from './room.ts'
 
-// Close code sent to the older socket when the same interview is opened in another tab.
+// Sent to the older socket when another tab opens the interview.
 export const CLOSE_REPLACED = 4000
 
 const ROOM_URL = new RegExp(`^${WS_PATH}/([\\w-]+)$`)
 
-// One socket per interview; a newer one replaces the older.
+// One socket per interview; a newer socket replaces the older one.
 const sockets = new Map<string, WebSocket>()
 
 export function attachRooms(server: Server) {
-  // A little above the answer limit, so a slightly too long answer gets a clear
-  // AUDIO_TOO_LARGE error. A frame above maxPayload closes the socket (code 1009).
+  // Slightly above the answer limit, so oversized answers get AUDIO_TOO_LARGE, not a close.
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_ANSWER_BYTES + 1024 * 1024 })
 
   server.on('upgrade', (req, socket, head) => {
@@ -35,10 +33,9 @@ export function attachRooms(server: Server) {
 }
 
 async function openRoom(ws: WebSocket, id: string) {
-  // Bad frames (too large, invalid UTF-8) are reported as 'error' and then close the
-  // socket; without a listener the error would crash the whole server.
+  // Bad frames emit 'error'; unhandled, it would crash the server.
   ws.on('error', (err) => console.error(`room ${id}: socket error`, err.message))
-  // Buffer messages that arrive while the interview loads.
+  // Buffer messages while the interview loads.
   const early: [Parameters<Room['handle']>[0], boolean][] = []
   const buffer = (data: Parameters<Room['handle']>[0], isBinary: boolean) => early.push([data, isBinary])
   ws.on('message', buffer)

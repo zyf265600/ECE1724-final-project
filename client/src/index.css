@@ -48,7 +48,7 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* One dark theme: deep navy. Cards are faint white over the page background. */
+/* Dark navy theme. */
 :root {
     color-scheme: dark;
     --background: #070d1a;
@@ -88,7 +88,7 @@
     --speaking: #4a78dc; /* = navy-400 */
 }
 
-/* Navy scale for accents (lightest first) and the light body text on photos. */
+/* Navy accents (lightest first) and text over photos. */
 @theme {
     --color-navy-100: #9db8f2;
     --color-navy-200: #7da0ec;
@@ -104,8 +104,7 @@
   * {
     @apply border-border outline-ring/50;
     }
-  /* Static backdrop (no motion): navy light from the top right over a navy-to-black
-     diagonal, and a faint grid that fades out from the top. */
+  /* Static navy backdrop with a faint grid. */
   body {
     @apply text-foreground;
     min-height: 100svh;

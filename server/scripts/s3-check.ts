@@ -1,5 +1,4 @@
-// S3 round trip: upload a small object, download it through a presigned URL,
-// compare the bytes, then delete it. Checks the bucket name, region and keys in server/.env.
+// S3 check: upload, download via presigned URL, compare, delete.
 //   npm run s3:check -w server
 import { randomBytes, randomUUID } from 'node:crypto'
 import { audioKey, audioUrl, deleteAudio, putAudio } from '../src/services/storage.ts'

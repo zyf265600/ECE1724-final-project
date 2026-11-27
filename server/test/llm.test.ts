@@ -1,12 +1,12 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// DeepSeek is a stubbed fetch; Claude is mocked. No real API is called.
+// No real API calls: DeepSeek fetch stubbed, Claude mocked.
 vi.mock('../src/services/claude.ts', () => ({
   CLAUDE_MODEL: 'claude-test',
   claudeChat: vi.fn(async () => 'from Claude'),
   claudeConfigured: vi.fn(() => true),
 }))
-process.env.DEEPSEEK_API_KEY = 'test-key' // set before dotenv runs, so server/.env does not replace it
+process.env.DEEPSEEK_API_KEY = 'test-key' // before dotenv, so .env can't override it
 
 const { claudeChat, claudeConfigured } = await import('../src/services/claude.ts')
 const { chat } = await import('../src/services/llm.ts')

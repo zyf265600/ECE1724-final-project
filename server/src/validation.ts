@@ -1,7 +1,7 @@
 import { DURATIONS_MIN, type CreateInterviewRequest, type Difficulty, type Voice } from '@deepdive/shared'
 import { HttpError } from './http/errors.ts'
 
-// Records (not arrays) so the compiler fails if a value is added to the type but not here.
+// Records rather than arrays, so a missing value fails to compile.
 const DIFFICULTIES: Record<Difficulty, true> = { EASY: true, MEDIUM: true, HARD: true }
 const VOICES: Record<Voice, true> = { MALE: true, FEMALE: true }
 const ROLE_MAX_LENGTH = 100

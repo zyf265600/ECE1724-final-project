@@ -24,7 +24,7 @@ export const SKILL_LABEL: Record<Skill, string> = {
 export const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
-// The "Result" column of past interviews (setup page).
+// "Result" column of the past-interviews list.
 export function resultLabel(item: InterviewListItem): string {
   switch (item.status) {
     case 'DONE':
@@ -40,6 +40,6 @@ export function resultLabel(item: InterviewListItem): string {
   }
 }
 
-// Interviews that have (or will soon have) a report page to open.
+// Statuses that have a report page.
 export const hasReport = (item: InterviewListItem) =>
   item.status === 'DONE' || item.status === 'SCORING' || item.status === 'FAILED'

@@ -1,7 +1,7 @@
 # C5: scoring review
 
-Five sample interviews scored with the real LLM (DeepSeek), checked by hand for fairness and for quotes.
-Reproduce with `npm run score:review -w server` (transcripts in `server/scripts/score-review.ts`). The sample labels below ("strong", "vague", …) are printed by the script only; the LLM sees just the role and the transcript. The five reports stay in the database and open in the app.
+Five sample interviews scored with DeepSeek and reviewed by hand for fairness and quotes.
+Reproduce: `npm run score:review -w server` (transcripts in `server/scripts/score-review.ts`). Sample labels are printed only, never sent to the LLM. The reports stay in the database.
 
 ## Reports
 
@@ -13,15 +13,15 @@ Reproduce with `npm run score:review -w server` (transcripts in `server/scripts/
 | 4 | The interviewer states the result, the candidate only agrees | 2.3 | NO_HIRE | Yes. The summary asks for "results you measured yourself rather than confirming the interviewer's numbers". |
 | 5 | One short answer | 1.5 | STRONG_NO_HIRE | Mostly. Personal contribution 3 for "I made a to-do list app" is generous: the rubric's 3 asks for a clear own part, and the sentence is clear but says nothing more. |
 
-An earlier run (2026-11-17) found two problems, fixed in the scoring prompt before the run above:
-- Sample 4: the summary praised "a concrete improvement in runtime", which only the interviewer had said. New rule: credit only what the candidate said, also in the summary.
-- Sample 5: clarity 3 for a single sentence. New rule: one or two short sentences give clarity at most 2.
+Fixed after an earlier run:
 
-That earlier run also put the sample label into the role ("Review 2 (vague) …"), so the LLM saw the expected result. The run above uses the plain role.
+- Sample 4: the summary praised "a concrete improvement in runtime", which only the interviewer said. Rule added: credit only what the candidate said, also in the summary.
+- Sample 5: clarity 3 for one sentence. Rule added: one or two short sentences get clarity at most 2.
+- The script sent the sample label in the role ("Review 2 (vague) …"), so the LLM saw the expected result. The role is now plain.
 
 ## Quotes, per score
 
-"In that turn" is checked by the review script on its own (case-insensitive text match, then a match ignoring punctuation), not with the server's check. These five interviews were scored from typed transcripts, so they have no recordings; playback is checked separately below.
+"In that turn" is checked by the script itself (text match, then ignoring punctuation), independent of the server's check. These interviews were typed, so playback is checked below.
 
 ### Sample 1: strong, Backend engineer intern
 
@@ -73,15 +73,15 @@ That earlier run also put the sample label into the role ("Review 2 (vague) …"
 | PERSONAL_CONTRIBUTION | 3 | I made a to-do list app for a course project. | 1 | CANDIDATE | yes |
 | CLARITY | 2 | I made a to-do list app for a course project. | 1 | CANDIDATE | yes |
 
-Result: 25 of 25 quotes kept; each links to a CANDIDATE turn of its own interview and appears in that turn's text. The server dropped none. In sample 4 the LLM did not quote the interviewer's numbers.
+Result: 25 of 25 quotes kept, each in its linked CANDIDATE turn. None dropped; sample 4 does not quote the interviewer.
 
 ## Playback
 
-Checked on 2026-11-23, once S3 was set up, with one recorded interview (one spoken answer). Its report kept quotes for four skills; each links to that candidate turn, and *Play my answer* plays that turn's recording (13.9 s), the audio its text was transcribed from. So the quote and the playback come from the same answer.
+Checked with one recorded interview: all four kept quotes link to the candidate turn, and *Play my answer* plays that turn's recording (13.9 s), the audio the quote was transcribed from.
 
 ## The server's quote check
 
-`checkQuote` in `server/src/services/scoring.ts`, tested with quotes the LLM did not produce:
+`checkQuote` (`server/src/services/scoring.ts`), tested with constructed quotes:
 
 | Case | Result |
 |---|---|

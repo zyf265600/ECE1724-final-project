@@ -19,7 +19,6 @@ import { Card } from '@/components/ui/card'
 import { api, errorMessage } from '@/lib/api'
 import { DIFFICULTY_LABEL, hasReport, resultLabel, shortDate } from '@/lib/labels'
 
-// Past interviews, below the setup form. A row opens its report, or its room if unfinished.
 export function PastInterviews() {
   const [interviews, setInterviews] = useState<InterviewListItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -67,7 +66,6 @@ export function PastInterviews() {
 
 function HistoryList({ items, onDelete }: { items: InterviewListItem[]; onDelete: (id: string) => void }) {
   const navigate = useNavigate()
-  // Finished interviews open their report; unfinished ones go back to the room.
   const open = (item: InterviewListItem) =>
     navigate(hasReport(item) ? `/interviews/${item.id}/report` : `/interviews/${item.id}/room`)
 
@@ -139,7 +137,7 @@ function DeleteButton({ item, onDelete }: { item: InterviewListItem; onDelete: (
           variant="ghost"
           size="icon"
           aria-label={`Delete ${item.role} interview`}
-          onClick={(e) => e.stopPropagation()} // do not open the row
+          onClick={(e) => e.stopPropagation()} // don't open the row
         >
           <X />
         </Button>

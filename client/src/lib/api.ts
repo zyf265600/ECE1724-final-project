@@ -1,4 +1,4 @@
-// Typed calls to the REST API (docs/api.md). Paths are relative: Vite forwards /api to the server.
+// REST API calls (docs/api.md).
 import type {
   ApiError,
   AudioUrlResponse,
@@ -9,7 +9,7 @@ import type {
   ReportDto,
 } from '@deepdive/shared'
 
-// A non-2xx response, carrying the server's error code and message.
+// Error for a non-2xx response.
 export class ApiRequestError extends Error {
   readonly status: number
   readonly code: ApiError['error']['code'] | 'NETWORK'

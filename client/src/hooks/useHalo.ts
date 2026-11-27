@@ -1,15 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { levelMeter } from '@/lib/audioLevel'
 
-// How far the halo grows at full loudness: 1.6 = 60 % wider than the avatar.
+// Max halo size relative to the avatar.
 const MAX_SCALE = 1.6
-// Reacts about twice as fast as the microphone check's level bar, so it moves with each word.
+// Reacts faster than the microphone check, so the halo tracks each word.
 const SMOOTHING = { rise: 0.5, fall: 0.2 }
 
-// A halo behind a speaker's avatar that grows with how loud they are, like a video call.
-// Returns a ref for the halo element. While `active`, each animation frame reads the
-// analyser and sets the element's size and opacity directly (no React render per frame);
-// otherwise the halo is hidden.
+// Halo that grows with the speaker's volume; updates the element directly each frame, bypassing React.
 export function useHalo(analyser: AnalyserNode | null | undefined, active: boolean) {
   const ref = useRef<HTMLSpanElement>(null)
 

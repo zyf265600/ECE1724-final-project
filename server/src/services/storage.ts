@@ -1,5 +1,4 @@
-// Answer recordings in a private S3 bucket. The database stores only the key;
-// the browser plays a recording through a short-lived presigned URL.
+// Answer recordings in a private S3 bucket; the database stores only the key.
 import {
   DeleteObjectsCommand,
   GetObjectCommand,
@@ -12,8 +11,7 @@ import { requireEnv } from '../env.ts'
 
 const URL_TTL_SECONDS = 5 * 60
 
-// Created on first use, so the server starts (and the other routes work) before S3 is configured.
-// The SDK reads AWS_REGION, AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY from the environment.
+// Created on first use, so the server runs before S3 is set up.
 let client: S3Client | null = null
 function s3(): S3Client {
   requireEnv('AWS_REGION')
@@ -23,8 +21,7 @@ function s3(): S3Client {
 
 const bucket = () => requireEnv('S3_BUCKET')
 
-// Until S3 is set up in server/.env, answers are transcribed and saved without their
-// recording (the turn has no audioKey, so "Play my answer" is not offered).
+// Without S3, answers are saved without recordings.
 export function storageConfigured(): boolean {
   return Boolean(process.env.S3_BUCKET && process.env.AWS_REGION)
 }

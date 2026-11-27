@@ -1,6 +1,6 @@
-// Transcribes an audio file with Higgs STT, the same way the server will transcribe answers.
+// Transcribes an audio file with Higgs STT.
 //   npm run stt -w server -- answer.webm
-// Any format ffmpeg reads works (the browser's WebM/Opus recording, WAV, MP3).
+// Accepts any format ffmpeg can read.
 import { readFile } from 'node:fs/promises'
 import { decodeToPcm, pcmDurationSeconds } from '../src/services/audio.ts'
 import { transcribe } from '../src/services/stt.ts'

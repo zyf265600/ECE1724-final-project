@@ -3,10 +3,7 @@ import { levelMeter } from '@/lib/audioLevel'
 
 export type MicStatus = 'idle' | 'asking' | 'working' | 'blocked' | 'error'
 
-// Microphone check for the Setup page. start() asks for permission and then reports
-// the input level (0-1, see lib/audioLevel.ts) once per animation frame so the page can
-// draw a level bar; stop() ends the test and releases the microphone. A passed test stays
-// 'working'. Everything is released when the page unmounts.
+// Microphone check: start() reports the level (0-1) each frame; stop() releases the microphone.
 
 export function useMicCheck() {
   const [status, setStatus] = useState<MicStatus>('idle')
@@ -28,8 +25,7 @@ export function useMicCheck() {
     setStatus('asking')
     let stream: MediaStream
     try {
-      // Automatic gain control would even out loud and quiet speech, so the bar would
-      // barely follow the voice; the check measures the raw input instead.
+      // Disable auto gain, which would flatten the level.
       stream = await navigator.mediaDevices.getUserMedia({ audio: { autoGainControl: false } })
     } catch (err) {
       const denied = err instanceof DOMException && err.name === 'NotAllowedError'

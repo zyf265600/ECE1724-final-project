@@ -5,7 +5,6 @@ import { ReportPage } from '@/pages/ReportPage'
 import { RoomPage } from '@/pages/RoomPage'
 import { SetupPage } from '@/pages/SetupPage'
 
-// Routes from docs/wireframes.md.
 export default function App() {
   return (
     <BrowserRouter>

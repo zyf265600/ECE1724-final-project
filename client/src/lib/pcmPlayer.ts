@@ -1,10 +1,9 @@
 import { TTS_AUDIO } from '@deepdive/shared'
 
-// Plays the interviewer's speech as it streams in: raw PCM chunks (TTS_AUDIO format)
-// are queued back to back with the Web Audio API.
+// Plays the interviewer's streamed speech chunk by chunk.
 export class PcmPlayer {
   private readonly context = new AudioContext()
-  // Every chunk plays through this analyser, so the room can show how loud the interviewer is.
+  // Feeds the halo.
   readonly analyser = this.context.createAnalyser()
   private nextStart = 0 // context time at which the next chunk starts
   private leftover: Uint8Array | null = null // odd byte from the previous chunk
@@ -14,7 +13,7 @@ export class PcmPlayer {
     this.analyser.connect(this.context.destination)
   }
 
-  // Browsers start audio suspended until a user gesture; call this from a click.
+  // Call from a click; audio starts suspended.
   unlock(): Promise<void> {
     return this.context.resume()
   }
@@ -28,7 +27,7 @@ export class PcmPlayer {
       bytes = joined
       this.leftover = null
     }
-    // A sample is 2 bytes; a chunk can end in the middle of one.
+    // A chunk can split a 2-byte sample.
     if (bytes.length % 2 === 1) {
       this.leftover = bytes.slice(-1)
       bytes = bytes.subarray(0, -1)
@@ -44,7 +43,7 @@ export class PcmPlayer {
     const source = this.context.createBufferSource()
     source.buffer = buffer
     source.connect(this.analyser)
-    // A short lead on the first chunk absorbs network jitter between chunks.
+    // A short lead absorbs network jitter.
     const start = Math.max(this.nextStart, this.context.currentTime + 0.1)
     source.start(start)
     this.nextStart = start + buffer.duration
@@ -52,8 +51,7 @@ export class PcmPlayer {
     source.onended = () => this.sources.delete(source)
   }
 
-  // Resolves when everything queued so far has been heard. Waits for the last chunk's
-  // 'ended' event rather than the clock, because a suspended context plays nothing.
+  // Resolves when all queued audio has played.
   finished(): Promise<void> {
     const last = [...this.sources].at(-1)
     if (!last) return Promise.resolve()

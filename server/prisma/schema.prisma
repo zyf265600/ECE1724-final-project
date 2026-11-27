@@ -65,7 +65,7 @@ model Interview {
   @@index([createdAt])
 }
 
-// Saved as soon as it happens, so a dropped connection loses at most one answer.
+// Saved per turn, so a dropped connection loses at most one answer.
 model Turn {
   id          String   @id @default(uuid())
   interviewId String
@@ -99,7 +99,7 @@ model Score {
   skill    Skill
   score    Int // 1-4
   comment  String
-  quote    String? // null when the LLM quote was not found in the transcript
+  quote    String? // null if the quote failed the turn check
   turnId   String? // the quoted candidate turn
 
   report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)

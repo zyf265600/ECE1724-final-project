@@ -1,4 +1,4 @@
-// Checks both LLM providers without spending tokens (each lists its models).
+// Checks both LLM keys by listing models (uses no tokens).
 // Usage: npm run llm:check -w server
 import 'dotenv/config'
 import { CLAUDE_MODEL } from '../src/services/claude.ts'

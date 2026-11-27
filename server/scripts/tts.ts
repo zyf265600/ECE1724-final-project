@@ -1,7 +1,6 @@
 // Speaks one sentence with Higgs TTS and saves it as a WAV file.
 //   npm run tts -w server -- "Why did you choose PostgreSQL?" [--voice MALE] [--out question.wav]
-// Prints the time to the first audio chunk, the number that decides how long
-// the candidate waits after each answer.
+// Prints the time to first audio.
 import { writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'

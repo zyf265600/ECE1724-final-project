@@ -1,100 +1,152 @@
 # Design decisions
 
-Short log of decisions that shape the code. Newest last.
+Each entry names the question, what we chose, and why.
 
-## C1: contract and schema (2026-11-15)
+## Architecture and contract
 
-The contract lives in `shared/src/` (`domain.ts`, `rest.ts`, `ws.ts`); the schema in `server/prisma/schema.prisma`.
+1. **How do the client and server agree on data shapes?**
+   - **Decision:** one `shared/` package (`domain.ts`, `rest.ts`, `ws.ts`) with every REST body and WebSocket message, imported by both sides; enums are repeated with the same values as Prisma enums.
+   - **Instead of:** separate type definitions on each side, or importing Prisma types in the client.
+   - **Why:** a changed message shape fails the type-check on whichever side is out of date, and the client stays independent of the database.
+2. **How does the meeting room talk to the server?**
+   - **Decision:** one WebSocket per interview, used only in the meeting room; every other page uses REST.
+   - **Instead of:** one HTTP request per turn, polling, or Server-Sent Events.
+   - **Why:** the room needs two-way traffic (answers up; captions, state and interviewer audio down) without a delay per turn; Server-Sent Events only go from server to browser. Keeping other pages on REST means only the room depends on the socket.
+3. **Who decides when the candidate may speak?**
+   - **Decision:** the server owns the room state (`speaking`, `thinking`, `listening`, `ended`) and sends it on every change; the client records only in `listening`, after the question has finished playing.
+   - **Instead of:** the client tracking the turn order itself.
+   - **Why:** one source of truth survives reconnects and second tabs, and the candidate never records over the interviewer. A second tab closes the older socket (close code 4000).
+4. **Who may access the database, S3 and the external APIs?**
+   - **Decision:** only the server; the browser gets recordings through `GET /api/turns/:id/audio`, which returns a presigned URL valid for 5 minutes.
+   - **Instead of:** public S3 URLs or client-side API calls.
+   - **Why:** keys and credentials stay in `server/.env`, the bucket stays private, and S3 keys never leave the server (`TurnDto` only has `hasAudio`).
+5. **How is a failed scoring run retried?**
+   - **Decision:** a seventh endpoint, `POST /api/interviews/:id/report` (202), which works only on `FAILED` interviews.
+   - **Instead of:** reusing one of the six planned endpoints, none of which can restart scoring.
+   - **Why:** the report page needs a *Score again* button, and limiting it to `FAILED` means a finished report is never replaced.
 
-1. **One recording per answer.** When the candidate clicks *Finish answer*, the client sends the whole MediaRecorder recording (`audio/webm;codecs=opus`) as one binary WebSocket frame. The server stores it in S3 as `interviews/{id}/turns/{turnId}.webm`, so playback needs only one object per turn.
-   - Boson Higgs STT accepts PCM or Opus frames, not WebM files, so the server decodes the recording to PCM and sends it to STT in pieces of at most 60 seconds (Higgs STT kept only the last ~60 s in our tests).
-2. **Interviewer audio is raw PCM.** Boson streaming TTS returns 16-bit, 24 kHz, mono PCM. The server forwards these chunks unchanged as binary frames between `audio.start` and `audio.end`; the client plays them with the Web Audio API. No re-encoding on the server.
-3. **The server owns the room state.** It sends `state` (`speaking` / `thinking` / `listening` / `ended`) on connect and on every change. The client opens the microphone only in `listening`, after its own playback has finished.
-4. **Enums are written twice, with identical values:** as string unions in `shared/src/domain.ts` and as Prisma enums. The client never imports Prisma types.
-5. **No S3 keys leave the server.** `TurnDto` has `hasAudio`; the client asks `GET /api/turns/:id/audio` for a 5-minute presigned URL.
-6. **Quotes can be missing.** `Score.quote` and `Score.turnId` are nullable: a quote the LLM returns that is not in the transcript is removed rather than shown.
-7. **Deletes cascade in the database.** Deleting an Interview deletes its Turns, Report and Scores; the server deletes the S3 objects first.
+## Voice loop
 
-## C2: foundations (2026-11-15)
+1. **How does the browser send an answer?**
+   - **Decision:** record the whole answer with `MediaRecorder` (`audio/webm;codecs=opus`) and send it as one binary frame (at most 10 MB) when the candidate clicks *Finish answer*.
+   - **Instead of:** streaming microphone audio while the candidate speaks.
+   - **Why:** one file per answer is one S3 object (`interviews/{id}/turns/{turnId}.webm`) that plays back as is. The cost is that transcription starts only after the answer ends (about 1.1 s for a 10 s answer).
+2. **How does an answer get transcribed?**
+   - **Decision:** decode the recording to 24 kHz PCM with ffmpeg (`ffmpeg-static`), then send it to Higgs STT in a Realtime session in manual mode, in pieces of at most 55 s.
+   - **Instead of:** sending the WebM file directly, or the whole answer as one piece.
+   - **Why:** Higgs STT is only available in a Realtime session, takes PCM rather than WebM, and keeps only about the last 60 s of a commit.
+3. **What happens to a silent answer?**
+   - **Decision:** the server rejects answers with no sample above about -40 dBFS and asks the candidate to answer again.
+   - **Instead of:** sending every recording to STT.
+   - **Why:** Higgs STT invents a sentence for silent audio, which would enter the transcript as a fake answer.
+4. **How is the interviewer's voice delivered?**
+   - **Decision:** forward Boson's streamed TTS chunks (16-bit, 24 kHz, mono PCM) unchanged; the client plays each chunk as it arrives with the Web Audio API.
+   - **Instead of:** waiting for the full audio file, or re-encoding to MP3 or Opus on the server.
+   - **Why:** speech starts before the whole question is generated (first audio in 0.5–0.8 s), with no encoding delay.
+5. **Where does the first question come from?**
+   - **Decision:** a fixed opening question; follow-ups come from DeepSeek, one question of at most two sentences per call, based on the transcript and the chosen difficulty.
+   - **Instead of:** letting the LLM write the opening question too.
+   - **Why:** the interview starts at once instead of waiting about 1 s, and every session opens the same way.
+6. **How does an answer end?**
+   - **Decision:** the candidate clicks *Finish answer*; the interviewer never interrupts.
+   - **Instead of:** automatic end-of-speech detection.
+   - **Why:** candidates pause to think in the middle of technical answers, and automatic detection would cut them off. The cost is one click per answer.
+7. **What happens when time runs out?**
+   - **Decision:** the time limit (3, 5 or 10 minutes) is checked between answers; when it has passed, the interviewer says a fixed closing line and the interview moves to `SCORING`.
+   - **Instead of:** stopping the candidate mid-answer.
+   - **Why:** an answer in progress is always heard out; the room shows "Time is up. Finish your answer to end the interview."
+8. **What does *End interview* do while the interviewer is speaking?**
+   - **Decision:** the client stops the queued audio and drops later chunks; the server stops streaming once the interview is no longer `LIVE`.
+   - **Instead of:** letting the current question finish playing.
+   - **Why:** the candidate asked to stop, so the room goes quiet at once. Clicking it again, or during the closing line, still ends and scores the interview only once.
+9. **What happens after a dropped connection?**
+   - **Decision:** every turn is saved as it happens; on reconnect the server resends the saved turns as captions and continues (`listening` if the last turn is a question, otherwise the next question).
+   - **Instead of:** keeping the interview only in memory, or restarting it.
+   - **Why:** a dropped connection loses at most the answer in progress, and the same path also retries a failed follow-up question.
 
-1. **STT runs inside a Realtime session.** Boson has no file-upload transcription endpoint; `higgs-stt-3.1` is only available in Higgs Realtime. `server/src/services/stt.ts` opens a server-side Realtime WebSocket in manual mode (no turn detection, text output, never sends `response.create`), appends the answer as PCM, commits, and waits for `conversation.item.input_audio_transcription.completed`. Answers are committed in pieces of at most 55 s.
-2. **ffmpeg decodes the answer.** `ffmpeg-static` ships an ffmpeg binary in `node_modules`, so `npm install` is enough on every platform. It turns the WebM/Opus recording into 24 kHz PCM for STT.
-3. **Every external call has a timeout and one retry** (`server/src/services/retry.ts`). Only errors that another try can fix are retried: network errors, timeouts, 429 and 5xx. TTS retries only before its first byte.
-4. **Voices:** `FEMALE` is Boson's preset `eleanor`, `MALE` is `oliver` (both calm).
-5. **Prisma 7 uses the `pg` driver adapter** (`server/src/db.ts`). The generated client is not committed; `npm install` runs `prisma generate`.
-6. **Measured (2026-11-15):** TTS first audio 0.5–0.8 s for one question; STT of a 5 s WebM answer 0.6 s, of a 76 s answer (two pieces) 2.9 s, with nothing lost at the cut.
+## Scoring
 
-Open question: *Score again* on the report page needs a way to restart scoring; none of the six REST endpoints does this yet. Decide in stage 2.1. (Decided in C5, decision 5.)
+1. **How is an interview scored?**
+   - **Decision:** one LLM call in JSON mode (temperature 0.2) over the numbered, speaker-labelled transcript; the reply has a summary and, per skill, a score 1–4, a comment, a quote and the quote's turn number.
+   - **Instead of:** one call per skill, or free-text feedback.
+   - **Why:** one fixed rubric, with a one-line meaning for each score level, keeps scores comparable between interviews; JSON can be validated.
+2. **What if the LLM's reply is invalid?**
+   - **Decision:** require exactly one entry per skill, integer scores 1–4, and a non-empty comment and summary; ask once more, then mark the interview `FAILED`.
+   - **Instead of:** saving whatever the LLM returns.
+   - **Why:** a report with missing or out-of-range scores is worse than a clear failure with *Score again*.
+3. **When is a quote trusted?**
+   - **Decision:** keep a quote only if its linked turn belongs to this interview, the speaker is `CANDIDATE`, and the normalized quote (case, spaces, punctuation, curly quotes) appears in that turn's text as whole words; otherwise `quote` and `turnId` are null.
+   - **Instead of:** searching the whole transcript for the quote.
+   - **Why:** a quote found elsewhere may be the interviewer's words or another answer, and *Play my answer* would then play a recording that does not contain it. A quote is never moved to another turn.
+4. **Who computes the overall score and the verdict?**
+   - **Decision:** the server: weighted average (technical depth 25%, trade-offs 25%, results and validation 20%, personal contribution 15%, clarity 15%), rounded to one decimal; ≥ 3.3 Strong hire, ≥ 2.5 Hire, ≥ 1.8 No hire, otherwise Strong no hire.
+   - **Instead of:** asking the LLM for an overall verdict.
+   - **Why:** equal skill scores always give the same verdict, and the verdict always matches the number shown. An interview with no answers is not sent to the LLM; every skill gets 1.
+5. **What earns credit?**
+   - **Decision:** only what the candidate said, in the scores and in the summary; one or two short sentences get clarity at most 2.
+   - **Instead of:** scoring the conversation as a whole.
+   - **Why:** a result stated by the interviewer and merely confirmed by the candidate is not the candidate's evidence. Five sample interviews were reviewed by hand: [scoring-review.md](scoring-review.md).
+6. **When does scoring run?**
+   - **Decision:** in the background when the interview ends; the room waits for `report.ready`, and the report page polls every 3 s if the socket is gone. Interviews left in `SCORING` are scored again at server start.
+   - **Instead of:** scoring inside the request that ends the interview.
+   - **Why:** scoring takes several seconds; a restart or a closed tab must not leave an interview unscored. Only one scoring run per interview is active.
+7. **What if DeepSeek is down?**
+   - **Decision:** send the same prompts to Claude, and skip DeepSeek for the next 60 s; only when `ANTHROPIC_API_KEY` is set. `npm run llm:check -w server` checks both keys without using tokens.
+   - **Instead of:** failing the turn or the scoring run.
+   - **Why:** an outage of one provider should not stop an interview, and the 60 s pause avoids waiting for DeepSeek's timeout on every call.
 
-## C3: one voice round (2026-11-17)
+## Storage and reliability
 
-1. **S3 is optional for now.** With `S3_BUCKET` empty, an answer is transcribed and saved without its recording (`audioKey` null, so `hasAudio` is false). If an upload fails, the answer is still saved without audio.
-2. **The first question is fixed text**, so the interview starts without waiting for the LLM. Follow-ups come from DeepSeek (`deepseek-chat`), one question per call, at most two sentences.
-3. **Silence never reaches STT.** Higgs STT invented a full sentence for a silent recording in our test, so the server rejects answers with no sample above about -40 dBFS.
-4. **Reconnect resumes.** On connect, a LIVE interview whose last turn is a question goes to `listening`; one whose last turn is an answer (or that has no turns) gets its next question. This is also how the client retries `LLM_FAILED`.
-5. **The microphone opens on the Begin click**, together with unlocking audio. It records only in `listening`, after the question has finished playing.
-6. **Measured (2026-11-17):** DeepSeek writes a follow-up in about 1 s. From *Finish answer* on a 10 s answer to the next question's caption and first audio: about 2.4 s.
+1. **What if S3 is not configured or an upload fails?**
+   - **Decision:** transcribe and save the answer anyway, without its recording; `hasAudio` is false and the report hides *Play my answer* for that turn.
+   - **Instead of:** failing the answer.
+   - **Why:** losing a recording is better than losing the answer, and the app runs without S3.
+2. **In what order is an interview deleted?**
+   - **Decision:** delete the S3 objects first, then the interview row; turns, report and scores cascade.
+   - **Instead of:** deleting the rows first.
+   - **Why:** if the S3 call fails, the rows stay and the delete can be repeated, so no recording is left without an owner. Old playback URLs return 403 afterwards.
+3. **How are external calls protected?**
+   - **Decision:** every call to Boson and the LLM has a timeout and one retry, only for errors another try can fix (network errors, timeouts, 429, 5xx); TTS retries only before its first byte.
+   - **Instead of:** no retries, or retrying every error.
+   - **Why:** an invalid key or no credit fails at once with a clear error, and a half-played question is never restarted from the beginning.
+4. **Which browsers are supported?**
+   - **Decision:** Chrome and Edge.
+   - **Instead of:** also supporting Safari.
+   - **Why:** the room records WebM/Opus; Safari records MP4, which is transcribed correctly but stored under a `.webm` key, so playback may fail there.
 
-## C4: full interview (2026-11-17)
+## Frontend
 
-1. **The time limit is checked between answers.** After each answer the server compares `startedAt + durationMin` with the clock. If time is up, the interviewer says a fixed closing line instead of a new question, and the interview moves to `SCORING`. An answer already in progress is always heard out; the room shows "Time is up. Finish your answer to end the interview."
-2. **Unfinished interviews can be resumed from the list of past interviews** (on Home until C7, now below the Setup form). Clicking a `CREATED` or `LIVE` row opens its room; *Resume interview* reconnects and continues (C3 decision 4).
+1. **How are the pages organized?**
+   - **Decision:** four pages: Home (product introduction), Setup (form, microphone check, past interviews), Meeting Room and Report.
+   - **Instead of:** a separate History page.
+   - **Why:** starting an interview and finding an old report happen in one place.
+2. **How is the meeting-room state managed?**
+   - **Decision:** one `useReducer` in `client/src/hooks/useRoom.ts`; other pages use local `useState`.
+   - **Instead of:** Redux Toolkit.
+   - **Why:** the complex state (connection, room state, captions, playback, errors, report ready) exists only in the room, so a global store adds setup without removing code.
+3. **How is the style kept consistent?**
+   - **Decision:** one navy theme from CSS variables in `client/src/index.css` (the shadcn/ui tokens plus a small navy scale); responsive layout with one column and fixed main buttons on phones.
+   - **Instead of:** colors written as hex values in each page.
+   - **Why:** one change to a variable restyles every page.
+4. **How does the Home page scroll?**
+   - **Decision:** five full-screen sections with CSS scroll snapping, and no other scroll effects.
+   - **Instead of:** scroll animations.
+   - **Why:** each scroll lands on one complete section, with no extra code to maintain.
+5. **How does the room show who is speaking?**
+   - **Decision:** a blue outline on the speaker's tile, and a halo behind the avatar that grows with their loudness (up to 1.6 times the avatar), updated every frame without a React render.
+   - **Instead of:** an animated avatar.
+   - **Why:** the interview has no avatar, and the cues are cheap to render while audio plays.
+6. **How does the microphone check measure loudness?**
+   - **Decision:** a decibel scale (-50 dB empty, -10 dB full) with smoothing, and automatic gain control turned off for the check; the bar moves only between *Test microphone* and *Finish test*, and *Start interview* also ends the test.
+   - **Instead of:** raw amplitude.
+   - **Why:** on a raw amplitude scale normal speech barely moves the bar, and automatic gain control evens out loud and quiet speech. Recorded answers are unaffected.
+7. **How is a report exported?**
+   - **Decision:** the report downloads as Markdown built in the browser from the data already loaded.
+   - **Instead of:** an export endpoint.
+   - **Why:** the page already has every field it needs, so no extra server code is required.
 
-## C5: scoring (2026-11-17)
+## Measurements
 
-Code: `server/src/services/scoring.ts`. Review of five reports: [scoring-review.md](scoring-review.md).
-
-1. **One LLM call in JSON mode** returns a summary and, per skill, a score, a comment, a quote and the quote's turn number. The rubric gives each score 1–4 a one-line meaning, so scores are comparable between interviews. Temperature 0.2.
-2. **Validation:** exactly one entry per skill, integer score 1–4, non-empty comment and summary. An invalid reply is asked for once more; after that the interview is `FAILED`.
-3. **Quotes** follow the rule in the next section (the linked turn must be a CANDIDATE turn of this interview that contains the quote). A dropped quote is logged on the server.
-4. **Verdict from the weighted score**, rounded to one decimal as the report shows it: ≥ 3.3 `STRONG_HIRE`, ≥ 2.5 `HIRE`, ≥ 1.8 `NO_HIRE`, otherwise `STRONG_NO_HIRE`. (Before C6 the score kept two decimals, so 2.45 showed as "2.5" next to `NO_HIRE`.) An interview with no answers is not sent to the LLM: every skill gets 1.
-5. **Score again** is a seventh endpoint, `POST /api/interviews/:id/report` (202). It works only on `FAILED` interviews, so a finished report is never replaced. The Proposal promises *Score again* for failures; none of the six endpoints could do it.
-6. **Scoring starts when the interview ends** (in the room, then `report.ready`), and again at server start for interviews still in `SCORING`.
-
-## C6: report, history, playback (2026-11-17)
-
-1. **The room opens the report by itself** once the closing words have played and scoring is over (`report.ready`, `SCORING_FAILED`, or the socket closed). The report page polls every 3 s while the interview is `SCORING`, so a lost socket only delays it.
-2. **One report page for every finished state:** `SCORING` shows "Scoring your answers…", `FAILED` shows *Score again*, `CREATED` / `LIVE` link back to the room.
-3. **Markdown is built in the browser** from the loaded interview and report (verdict, scores, comments, quotes, then the transcript). No extra endpoint.
-4. ***Play my answer* appears only when the quoted turn has a recording** (`hasAudio`). Until S3 is set up, no turn has one, so the button never shows.
-5. **Fixes from a code review of C3–C6:**
-   - A room socket has an `error` listener; a bad frame (for example an answer above the size limit) used to crash the server.
-   - *End interview* while the interviewer speaks: nothing in flight may leave `ended` again, and the interview is ended (and scored) only once.
-   - A room stops working once its socket closes; the next socket's room continues from the saved turns, so the two never save the same turn number.
-   - On connect the server resends every saved turn as a caption, so a question saved during a disconnect still appears. A `CREATED` interview gets no `state` on connect (changes C1 decision 3).
-   - Quotes must match whole words ("ache" no longer matches inside "cache").
-6. **Browsers:** Chrome and Edge. Safari cannot record WebM; its MP4 answer is transcribed correctly but stored under a `.webm` key, so playback may fail there.
-7. ***End interview* silences the interviewer at once.** The client stops the queued audio and drops any chunk that still arrives; the server stops streaming speech once the interview is no longer `LIVE`. The closing line after the time limit still plays to the end, because the interview is `LIVE` until it finishes.
-
-## C7: polish (2026-11-23)
-
-1. **Home introduces the product** in five full-screen sections over photos (Unsplash, credited at the bottom); each scroll stops on a section (CSS scroll snapping, home page only), with no other scroll effects. The text describes only working features.
-2. **Past interviews moved below the Setup form**, so the app keeps four pages and starting an interview and finding an old report happen in one place.
-3. **One dark navy theme.** Colors are CSS variables in `client/src/index.css` (the shadcn/ui tokens plus a small navy scale); pages use the names, not hex values.
-4. **Meeting room:** before *Begin* a waiting card replaces the call; the call opens directly, with no countdown or entrance effect. The tile of whoever is speaking gets a static blue outline: the interviewer while their audio plays, the candidate while the microphone records.
-5. **Microphone check:** the level bar moves only between *Test microphone* and *Finish test*. It maps loudness in decibels (-50 dB empty, -10 dB full) and is smoothed (it rises a quarter and falls a tenth of the way per frame). Automatic gain control is off for the check, because it evens out loud and quiet speech.
-6. **S3 checked end to end (2026-11-23):** `npm run s3:check -w server` passes; in a recorded interview the answer was stored (225 KB WebM), *Play my answer* played it through a presigned URL, and deleting the interview deleted the object (the old URL then returns 403). This replaces C6 decision 4's "until S3 is set up".
-7. **A halo follows the speaker's voice (2026-11-25).** Behind the avatar of whoever is speaking, a circle grows (up to 1.6 times the avatar) and brightens with their loudness, as in a video call. The interviewer's level is read from the audio being played, the candidate's from the microphone, on the same decibel scale as the microphone check (`client/src/lib/audioLevel.ts`), smoothed about twice as fast so it moves with each word. The halo is updated once per animation frame without re-rendering React. The outline from decision 4 stays.
-8. **The report links back to Setup**, where the next interview starts and past reports are listed.
-9. **Claude is the backup LLM (2026-11-25).** Every LLM call (follow-up questions and scoring) goes to DeepSeek first. If DeepSeek fails after its retry, the same call is sent to Claude (`claude-opus-5-5`, official Anthropic SDK) with the same system and user prompts, and DeepSeek is skipped for the next 60 s before it is tried again. Only the call changes: Claude gets a larger `max_tokens` because its thinking counts towards it, low effort for questions, and only the outermost `{...}` of its reply is kept for scoring. Claude is used only when `ANTHROPIC_API_KEY` is set.
-10. **LLM health check (2026-11-25).** At start, and with `npm run llm:check -w server`, the server asks DeepSeek and Claude for their model lists, which uses no tokens (`server/src/services/llmHealth.ts`). If DeepSeek fails the check, the first calls go straight to Claude.
-
-## Proposal feedback: quotes must match their turn (2026-11-15)
-
-Feedback received on the proposal:
-
-> DeepDive gives spoken interview practice a clear purpose and ties its report to evidence the candidate can check. Measuring the voice path first, segmenting answers within the 60-second STT limit you observed, and dropping the avatar when it slowed the conversation are good examples of basing design decisions on your own measurements.
->
-> Removing quotes that do not appear in the transcript is a useful safeguard. However, a quote can appear in the transcript and still come from the interviewer or from a different answer than the one it links to. In your five planned test reports, checking that each retained quote belongs to the linked candidate turn would help confirm that the text quote and audio playback match.
-
-What we keep: measuring before deciding (C2 measurements above), answer segmentation, no avatar.
-
-What we change: decision 6 only checked that a quote is somewhere in the transcript. If the quote came from the interviewer or from another answer, the quote text and *Play my answer* would not match. The rules below replace decision 6 with a check against the one linked turn.
-
-1. **The LLM names the turn.** The scoring prompt numbers every turn and labels its speaker. For each score the LLM returns `quote` together with the `turnIndex` it was taken from.
-2. **The server checks the quote against that one turn.** A quote is kept only if all of these hold; otherwise `quote` and `turnId` are both set to null:
-   - the turn belongs to this interview;
-   - the turn's speaker is `CANDIDATE`;
-   - after normalizing case, whitespace, punctuation and curly quotes, the quote is a substring of that turn's text.
-   The server never moves a quote to a different turn.
-3. **C5 check.** For each of the five test reports, record per score: the quote, the linked turn index and speaker, whether the quote is in that turn's text, and whether *Play my answer* plays the same words. Every kept quote must pass; dropped quotes are counted.
+- TTS first audio: 0.5–0.8 s per question.
+- STT: 0.6 s for a 5 s answer; 2.9 s for a 76 s answer sent in two pieces, with nothing lost at the cut.
+- DeepSeek writes a follow-up in about 1 s; from *Finish answer* to the next question's first audio takes about 2.4 s.

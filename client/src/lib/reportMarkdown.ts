@@ -1,7 +1,6 @@
 import { SKILL_WEIGHTS, type InterviewDetail, type ReportDto } from '@deepdive/shared'
 import { DIFFICULTY_LABEL, SKILL_LABEL, VERDICT_LABEL, shortDate } from './labels'
 
-// The report as a Markdown file, built in the browser from data already loaded.
 export function reportMarkdown(interview: InterviewDetail, report: ReportDto): string {
   const lines = [
     `# ${interview.role}: interview report`,
